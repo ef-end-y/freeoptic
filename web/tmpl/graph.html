@@ -1,0 +1,204 @@
+<style type='text/css'>
+<!--
+.graph_slider {
+    display: inline-block;
+}
+.graph_slider a {
+    display: inline-block;
+    background-color: #c0c0c0;
+    width: 10pt;
+    height: 10pt;
+    margin: 1px;
+}
+.graph_slider a.active {
+    background-color: #90a0b0;
+}
+.graph_slider a:hover {
+    background-color: #90a0b0;
+}
+#graph {
+    margin: 0 auto;
+}
+-->
+</style>
+
+<div id='graph'></div>
+
+<script type='text/javascript'>
+$(document).ready(function()
+{
+  $.getScript('{{cfg::img_dir}}/js/highcharts.9.0.1.js', function(){
+
+    Highcharts.setOptions({
+        global: {
+            useUTC: true
+        },
+        lang: {
+            shortMonths: [{{months}}],
+        }
+    });
+
+    var container = $('#graph');
+
+    var chart = new Highcharts.Chart({
+        chart: {
+            renderTo: 'graph',
+            zoomType: 'x',
+            spacingRight: 10
+        },
+        title: {
+            text: "{{title}}",
+            useHTML: true
+        },
+        xAxis: {
+            title: {
+                text: 'Время',
+            },
+            labels: {
+                {% if type %}
+                formatter: function() {
+                        return Highcharts.dateFormat('%e. %b', this.value);
+                },
+                {% else %}
+                formatter: function() {
+                        return Highcharts.dateFormat('%H:%M', this.value*1000);
+                },
+                {% endif %}
+            },
+            type: 'datetime',
+            gridLineWidth: 1
+        },
+        yAxis: {
+            title: {
+                text: '{{y_title}}'
+            },
+            min: {{y_min}},
+            startOnTick: true,
+            showFirstLabel: false
+        },
+        tooltip: {
+            enabled: true,
+            shared: true,
+            useHTML: true,
+            headerFormat: '',
+        },
+        plotOptions: {
+            spline: {
+                lineWidth: 1,
+                marker: {
+                    enabled: false,
+                },
+                shadow: false,
+            },
+            line: {
+                lineWidth: 2,
+                marker: {
+                    enabled: false,
+                },
+                shadow: false,
+            },
+            column: {
+                borderWidth: 3,
+            },
+            series: {
+                events: {
+                    checkboxClick: function(event) {
+                        nody.ajax({
+                            {{for_del}},
+                            id   : this.options.id,
+                            group: '{{group}}',
+                            domid: '{{domid}}'
+                        });
+                    }
+                },
+                showCheckbox: true
+            },
+            area: {
+                lineWidth: 1,
+                marker: {
+                    enabled: false
+                },
+                shadow: false,
+                states: {
+                    hover: {
+                        lineWidth: 1
+                    }
+                },
+                threshold: null
+            }
+        },
+
+        legend: {
+            layout: 'vertical',
+            labelFormatter: function() {
+                return this.name
+            },
+            itemStyle: { lineHeight : '20px' },
+        },
+        series: [
+            {% for s in series %} {
+                type: {% if type %}'area'{% else %}'area'{% endif %},
+                id  : '{{s.id}}',
+                name: '{{s.name}}',
+                data: [ 
+                 {% for point in s.points %} [ {{point.x}}, {{point.y}} ], {% endfor %} 
+                ],
+                fillColor: {
+                    linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1},
+                    stops: [
+                        [0, Highcharts.getOptions().colors[{{s.num}}]],
+                        [1, Highcharts.Color(Highcharts.getOptions().colors[{{s.num}}]).setOpacity(0).get('rgba')]
+                    ]
+                }
+            },{% endfor %}
+        ]
+    });
+
+    $('.graph_slider').each( function(){
+        var height = 4;
+        $(this).find('a').each( function(){
+            $(this).css({height:height});
+            height += 1;
+        });
+    });
+
+    var buttons = $('#graph_buttons');
+    var origChartWidth  = container.width();
+    var origChartHeight = container.height();
+
+    $("<button class='nav_button'>→</button>").
+        appendTo(buttons).
+        click( function(){
+            chart.setSize(container.width() * 1.1, container.height());
+        });
+    $("<button class='nav_button'>↓</button>").
+        appendTo(buttons).
+        click( function(){
+            chart.setSize(container.width(), container.height() * 1.1);
+        });
+    $("<button class='nav_button'>1:1</button>").
+        appendTo(buttons).
+        click( function(){
+            chart.setSize(origChartWidth, origChartHeight);
+        });
+    $("<button class='nav_button' style='float:right'>{{ remove_all_msg }}</button>").
+        appendTo(buttons).
+        click( function(){
+            nody.ajax({
+                {{for_del}},
+                group : '{{group}}',
+                domid : '{{domid}}',
+                type  : '{{type}}'
+            });
+        });
+
+    var expires = new Date();
+    expires.setTime(expires.getTime() + (1000 * 86400 * 365));
+    document.cookie = 'graph_rough=' + escape('{{rough}}') + '; expires=' + expires.toGMTString() + '; path=/';
+  });
+
+  $(document).trigger('graph_ready');
+});
+
+</script>
+<div id='graph_buttons'>{{msg}}</div>

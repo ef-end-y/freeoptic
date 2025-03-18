@@ -1,0 +1,22 @@
+<div class='login_base'>
+  <div class='login_block'>
+    <div class='login_head'>{{ cfg::net_title }}</div>
+    <div class='login_main'>
+
+    {% if error_message %}
+        <div class='align_center'>
+            <div class='error'>{{ error_message }}</div>
+            <br><br>
+        </div>
+    {% endif %}
+
+    {{ template::login_base.main }}{{ main }}
+
+    </div>
+    <div class='login_bottom'>
+        {% for lang in cfg::languages_list %}
+            <a href='?set_nolang={{lang}}' {% if cfg::Lang eq lang %}class='active'{% endif %}>{{ lang }}</a>
+        {% endfor %}
+    </div>
+  </div>
+</div>

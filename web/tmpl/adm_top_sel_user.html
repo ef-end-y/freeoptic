@@ -1,0 +1,11 @@
+{% global_block template::base.document_ready %}
+    // var parent_id = window.name;
+    // var parent = window.opener.$('#' + parent_id);
+    var parent_id = $('iframe', window.parent.document).attr('rel');
+    $('[data-select-uid]').click(function(event)
+    {
+        parent.$('#' + parent_id).val($(this).data('select-uid')).trigger('change');
+        parent.$('#modal_window').trigger('close');
+        event.preventDefault();
+    });
+{% endblock %}

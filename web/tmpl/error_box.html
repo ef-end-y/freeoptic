@@ -1,0 +1,15 @@
+<div {% if vertical_center %}style='display: flex; align-items: center; justify-content: center; height: 100%; max-height: calc(95vh - 120px);'{% endif %}>
+<div class='box error_box'>
+  <div class='box_tr'><div class='box_tl'><div class='box_t'>
+  </div></div></div>
+  <div class='box_r'><div class='box_l'>
+    <div class='big boxpddng'>
+      <div class='column_message'>
+        <div class='vertical_center'><img src='{{ cfg::err_pic }}'></div>
+        <div class='vertical_center'><div>{{ msg }}</div></div>
+      </div>
+    </div>
+  </div></div>
+  <div class='box_br'><div class='box_bl'><div class='box_b'></div></div></div>
+</div>
+</div>

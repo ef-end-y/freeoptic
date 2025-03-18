@@ -1,0 +1,759 @@
+    <nodeny>main_menu</nodeny>
+
+<div class='cell_menu' style='min-width:180px'>
+{{#if not_read_only }}<a href='#' class='cell' data-action='toggle-link-editing'><div class='menu_link_editing'></div><br>{{ lang.link_creation_mode }}</a>{{/if}}
+  <a href='#' class='cell' data-action='center-pan'><hr class='menu_img menu_aim'><br>{{ lang.to_center }}</a>
+  <a href='#' class='cell' data-action='position_grid'><hr class='menu_img menu_position_grid{{#if position_grid_en}} enabled{{/if}}'></a><!-- Вкл/выкл перемещение по сетке -->
+</div>
+{{#if not_read_only }}
+<hr>
+<p class='h_center'>{{ lang.add }}:</p>
+<div class='cell_menu'>
+{{#if is_infrastructure_view }}
+{{ else }}
+  <a href='#' class='cell4' data-action='create-panel'><hr class='create_patchpanel'>{{ lang.add_patchpanel }}</a>
+  <a href='#' class='cell4' data-action='create-coupler'><hr class='create_coupler'>{{ lang.add_junction_box }}</a>
+  <a href='#' class='cell4' data-action='create-splitter'><hr class='create_splitter'>{{ lang.add_splitter }}</a>
+  <a href='#' class='cell4' data-action='create-onu'><hr class='create_onu'>ONU</a>
+  <a href='#' class='cell4' data-action='create-switch'><hr class='create_switch'>{{ lang.add_commutator }}</a>
+{{/if}}
+  <a href='#' class='cell4' data-action='create-cable'><hr class='create_cable'>{{ lang.add_cable }}</a>
+  <a href='#' class='cell4' data-ajax='frame_create' data-type='container'><hr class='create_container'>{{ lang.add_container }}container</a>
+</div>
+{{/if}}
+<hr>
+<div class='cell_menu'>
+{{#if can_trace_path }}<a href='#' class='cell' data-action='path'><hr class='path'>{{ lang.path }}</a>{{/if}}
+{{#if not_read_only }}<a href='#' class='cell' data-ajax='paste'><hr class='btn-paste'>{{ lang.Paste }}</a>{{/if}}
+<!--
+  <hr>
+  <a href='#' data-ajax='nomap'>На карту</a>
+  <a href='#' class='cell' data-menu='export_menu'><hr class='export-import'>{{ lang.options }}</a>
+-->
+</div>
+
+
+    <nodeny>import_menu</nodeny>
+
+<form data-ajax='import' action='#' method='post' enctype='multipart/form-data' class='error bold'>
+  {{ lang.upload_scheme }}: <input type='file' name='file'>
+  <input type='submit' value='{{ lang.Upload }}' class='nav_button'>
+</form>
+
+
+
+    <nodeny>frame_create_menu_select_connectors</nodeny>
+
+<div class='select_frame_cols_modal'>
+  <div class='row select_frame_cols'>
+    <div class='nowrap'>
+      <div><input type='radio' name='cols' value='1' checked='checked' id='id_one_col_frame'><label for='id_one_col_frame' class='one_col_frame'></label></div>
+    </div>
+    <div class='nowrap' style='padding-top: 10px;'>
+      <input type='radio' name='cols' value='2' id='id_two_col_frame'><label for='id_two_col_frame' class='two_col_frame'></label>
+    </div>
+  </div>
+  {{#if_eq frame_type 'panel'}}{{ lang.number_of_connectors }}:{{/if_eq}}
+  {{#if_eq frame_type 'coupler'}}{{ lang.number_of_solders }}:{{/if_eq}}
+  {{#if_eq frame_type 'switch'}}{{ lang.number_of_ports }}:{{/if_eq}}
+  {{#if_eq frame_type 'splitter'}}{{ lang.number_of_ports }}:{{/if_eq}}
+
+  <input type='number' name='connectors' value='8' min='1' max='96' style='font-size: 100%'>
+  <div class='h_center txtpadding big'><input type='submit' class='nav_button' value='Ok'></div>
+</div>
+
+
+    <nodeny>frame_menu</nodeny>
+
+<div class='navmenu'>
+  <div class='row'>
+    <div class='col'>
+      {{#if_eq target.type 'switch'}}
+        <a href='#' data-ajax='frame_add_inner' data-type='port'><hr class='menu_img menu_connector_add'>{{ lang.add_port }}</a>
+      {{else}}
+        <a href='#' data-ajax='frame_add_inner' data-type='connector'><hr class='menu_img menu_connector_add'>{{ lang.add_connector }}</a>
+        <a href='#' data-ajax='frame_add_inner' data-type='solder'><hr class='menu_img menu_solder_add'>{{ lang.add_solder }}</a>
+        <a href='#' data-ajax='frame_add_inner' data-type='splitter'><hr class='menu_img menu_splitter_add'>{{ lang.add_splitter }}</a>
+      {{/if_eq}}
+      <a href='#' data-menu='frame_align_menu'><hr class='menu_img menu_inner_align'>{{ lang.align_inner_elements }}</a>
+    </div>
+    <div class='col'>
+      {{#if has_img }}
+        <a href='#' data-ajax='frame_show_img'>{{ lang.show_the_photo }}</a>
+        <a href='#' data-ajax='frame_remove_img' data-confirm='yes'>{{ lang.remove_the_photo }}</a>
+      {{/if}}
+      <a href='#' data-ajax='frame_data' class='correct-click-position'><hr class='menu_img menu_unit_data'>{{ lang.data }}</a>
+      {{#if_eq target.type 'switch'}}{{else}}
+        <a href='#' data-menu='frame_change_type'><hr class='menu_img menu_change_type'>{{ lang.change_avatar }}</a>
+      {{/if_eq}}
+      {{#if can_resize }}<a href='#' data-action='frame-size'><hr class='menu_img menu_move'>{{ lang.change_size }}</a>{{/if}}
+      <a href='#' data-ajax='frame_rotate'><hr class='menu_img menu_frame_rotate'>{{ lang.rotate }}</a>
+      {{#if has_parent }}<a href='#' data-ajax='remove_from_container'><hr class='menu_img move_from_container'>{{ lang.remove_from_container }}</a>{{/if}}
+<!-- 
+    <form data-ajax='frame_upload_img' action='#' method='post' enctype='multipart/form-data'>
+        Загрузить фото: <input type='file' name='img' accept='image/*'>
+        <input type='submit' value='Upload' class='nav_button'>
+    </form>
+-->
+    </div>
+  </div>
+  <hr>
+  <div class='row'>
+    <div class='col'>
+      <a href='#' data-ajax='frame_remove' data-confirm='yes'><hr class='menu_img menu_unit_remove'>{{ lang.remove }}</a>
+    </div>
+  </div>
+</div>
+
+    <nodeny>frame_change_type</nodeny>
+<div class='cell_menu'>
+  <a href='#' class='cell' data-ajax='frame_change_type' data-type='panel'><hr class='create_patchpanel'></a>
+  <a href='#' class='cell' data-ajax='frame_change_type' data-type='coupler'><hr class='create_coupler'></a>
+  <a href='#' class='cell' data-ajax='frame_change_type' data-type='splitter'><hr class='create_splitter'></a>
+  <a href='#' class='cell' data-ajax='frame_change_type' data-type='box'><hr class='create_box'></a>
+  <a href='#' class='cell' data-ajax='frame_change_type' data-type='fbt'><hr class='create_fbt'></a>
+  <a href='#' class='cell' data-ajax='frame_change_type' data-type='onu'><hr class='create_onu'></a>
+  <a href='#' class='cell' data-ajax='frame_change_type' data-type='empty'><hr class='create_container'></a>
+</div>
+
+
+
+    <nodeny>frame_align_menu</nodeny>
+
+<div class='navmenu'>
+  <a href='#' data-ajax='frame_inner_align'><hr class='menu_img menu_inner_align'>{{ lang.align }}</a>
+  <a href='#' data-ajax='frame_inner_align_grid'><hr class='menu_img menu_inner_align_grid'>{{ lang.grid_align }}</a>
+  <a href='#' data-ajax='frame_inner_align_lr'><hr class='menu_img menu_inner_align_lr'>{{ lang.directions_align }}</a>
+</div>
+
+    <nodeny>frame_data</nodeny>
+
+<form method='post' data-ajax='frame_data_save' action='#'>
+  <input type='hidden' name='id' value='{{ id }}'>
+  <table class='td_ok'>
+    <tr><td>{{ lang.name }}</td><td><input type='text' name='name' value='{{ name }}' autocomplete='off'></td></tr>
+    <tr><td>{{ lang.description }}</td><td><input type='text' name='description' value='{{ description }}'></td></tr>
+{{#if is_container}}
+    <tr><td>{{ lang.Layers }}</td><td>
+      <select name='layers'>
+          <option value=''>All</option>
+          <option value='scheme'{{#if_eq layers 'scheme'}} selected{{/if_eq}}>{{ lang.scheme }}</option>
+          <option value='infrastructure'{{#if_eq layers 'infrastructure' }} selected{{/if_eq}}>{{ lang.infrastructure }}</option>
+      </select></td>
+    </tr>
+{{else}}
+    <tr><td>{{ lang.group }}</td><td><input type='number' name='grp' value='{{ grp }}' min='0'></td></tr>
+{{/if}}
+{{#if map_types}}
+    <tr><td>{{ lang.Type }}</td><td>
+      <select name='map_type'>
+          <option value='0'{{#if_eq type 0}} selected{{/if_eq}}>-</option>
+      {{#each map_types}}
+          <option value='{{ this.id }}'{{#if this.selected }} selected{{/if}}>{{ this.type }}</option>
+      {{/each}}
+      </select></td>
+    </tr>
+{{/if}}
+
+{{#if the_tags}}
+    <tr>
+      <td></td>
+      <td>
+      {{#each the_tags}}
+        <label><input type='checkbox' name='tag_{{this.tag}}' value='1'{{#if checked}} checked{{/if}}> {{this.title}}</label><br>
+      {{/each}}
+      </td>
+    </tr>
+{{/if}}
+
+    <tr><td colspan='2' class='h_center'><input type='submit' value='Ok' class='nav_button'></td></tr>
+  </table>
+</form>
+
+
+    <nodeny>frame_inner_menu</nodeny>
+
+<div class='navmenu'>
+  <div class='row'>
+    <div class='col'>
+      <a href='#' data-ajax='frame_inner_data'><hr class='menu_img menu_unit_data'><!--<br>{{ lang.data }}--></a>
+    </div>
+{{#if not_read_only }}
+    <div class='col'>
+      <a href='#' data-action='toggle-link-editing'><div class='menu_link_editing'></div></a>
+    </div>
+{{/if}}
+  </div>
+  <hr>
+  <a href='#' data-ajax='pon_path'>PON path</a>
+  <a href='#' data-action='path_start'>{{#if fibers_path_start}}<span style='color: #000000'>✓</span> {{/if}}{{ lang.start_path_point }}{{#if_eq fibers_path_start 'other'}}<br>&nbsp;&nbsp;&nbsp;&nbsp;({{ lang.on_the_other_scheme }}){{/if_eq}}</a>
+  <a href='#' data-action='path_end'>{{#if fibers_path_end}}<span style='color: #000000'>✓</span> {{/if}}{{ lang.end_path_point }}{{#if_eq fibers_path_end 'other'}}<br>&nbsp;&nbsp;&nbsp;&nbsp;({{ lang.on_the_other_scheme }}){{/if_eq}}</a>
+{{#if not_read_only }}<hr><a href='#' data-ajax='frame_inner_remove' data-confirm='yes'><hr class='menu_img menu_unit_remove'>{{ lang.remove }}</a>{{/if}}
+</div>
+
+
+    <nodeny>frame_inner_data</nodeny>
+
+<form method='post' data-ajax='frame_inner_data_save' action='#'>
+  <input type='hidden' name='id' value='{{ id }}'>
+  <input type='hidden' name='inner_id' value='{{ inner_id }}'>
+  <table class='td_ok'>
+      <tr><td>{{ lang.name }}</td><td><input type='text' name='name' value='{{ name }}'></td></tr>
+      <tr><td>{{ lang.description }}</td><td><input type='text' name='description' value='{{ description }}'></td></tr>
+      <tr><td>Remote id</td><td><input type='text' name='remote_id' value='{{ remote_id }}'></td></tr>
+{{#if not_read_only }}<tr><td colspan='2' class='h_center'><input type='submit' value='Ok' class='nav_button'></td></tr>{{/if}}
+  </table>
+</form>
+
+
+    <nodeny>cable_create_menu_select_color_preset</nodeny>
+
+<p>{{ lang.select_the_fibers_color_sequence }}</p>
+{{#each colors_presets}}
+<div style='border-top: 1px solid #dddddd; padding: 3px;' data-color-preset-id='{{ this.preset_id }}' class='navmenu'>
+  <a href='#'>{{ this.description }}</a>
+  <div style='font-size: 0;'>
+  {{#each this.colors }}
+      <div style='display: inline-block; margin-left: 3px; width: 14px; height: 14px; padding: 0'>
+      {{#if this.second }}
+          <div style='width: 50%; height: 100%; display: inline-block; background-color: {{this.first}};'></div>
+          <div style='width: 50%; height: 100%; display: inline-block; background-color: {{this.second}};'></div>
+      {{else}}
+          <div style='width: 100%; height: 100%; display: inline-block; background-color: {{this.first}};'></div>
+      {{/if}}
+      </div>
+  {{/each}}
+  </div>
+</div>
+{{/each}}
+<hr>
+<br>
+<div class='navmenu'>
+  <a href='#' data-menu='create_color_preset_menu'>{{ lang.create_own_fibers_color_sequence }}</a>
+  {{#if can_remove }}<a href='#' data-menu='delete_color_preset_menu'>{{ lang.remove }}</a>{{/if}}
+</div>
+
+
+
+    <nodeny>create_color_preset_menu</nodeny>
+
+<div class='create-color-menu'>
+  <div class='available-colors cell'>
+  {{#each colors}}
+    <div class='select-color-container'>
+        <div class='select-color' data-select-color='{{ this.color }}' data-color-id='{{ this.id }}'></div>
+        <div class='select-color-descr'>{{ this.description }}</div>
+        <input type='hidden' name='color_{{ this.id }}' value='{{ this.id }}'>
+    </div>
+  {{/each}}
+  </div>
+
+  <form method='post' data-ajax='create_color_preset' action='#'>
+    <div class='cell'>
+        <div class='create-color-preset-now hidden'>
+            {{ lang.preset_name }}:<br><input type='text' name='description' value='{{ description }}' autocomplete='off'>
+            <input type='submit' value='{{ lang.create }}' class='nav_button'>
+        </div>        
+        <div class='result-colors'></div>
+    </div>
+  </form>
+</div>
+
+<script>
+  $('.select-color-container').each(function()
+  {
+    let color_container = $(this);
+    color_container.find('[data-select-color]').each(function()
+    {
+      let color_el = $(this);
+      let colors = color_el.data('select-color').split(' ');
+      let i = 0;
+      for( let color of Object.values(colors) )
+      {
+          let div = $('<div>');
+          div.css({
+              'width': (100 / colors.length + '%'),
+              'height': '100%',
+              'display': 'inline-block',
+              'background-color': color
+          });
+          $(this).append(div);
+      }
+      color_container.on('click', function()
+      {
+          let ready = color_container.data('ready')
+          $(ready ? '.available-colors' : '.result-colors').append(color_container);
+          color_container.data('ready', !ready);
+          let children = $('.result-colors').children();
+          children.each(function(index){ $(this).find('input').val(index) });
+          $('.create-color-preset-now').toggleClass('hidden', children.length == 0);
+      });
+    });
+  });
+</script>
+
+
+
+    <nodeny>delete_color_preset_menu</nodeny>
+
+{{#if can_remove }}
+<p>{{ lang.remove_the_fibers_color_sequence }}:</p>
+<ul>
+{{#each colors_presets}}
+    <li><a href='#' data-ajax='delete_color_preset' data-type='{{ this.preset_id }}' data-confirm='yes'>{{ this.description }}</a></li>
+{{/each}}
+</ul>
+{{/if}}
+
+
+
+    <nodeny>cable_create_menu_select_fibers</nodeny>
+
+<div style='font-size: 150%'>
+  <table class='td_ok'>
+    <tr><td class='h_right'>{{ lang.number_of_fibers }}:</td>
+        <td><input type='number' name='fibers' value='8' min='1' max='96' style='font-size: 100%'></td>
+        <td><div class='menu_img menu_fibers'></div></td>
+    </tr>
+    <tr><td class='h_right'>{{ lang.number_of_tubes }}:</td>
+        <td><input type='number' name='multimode' value='1' min='1' max='96' style='font-size: 100%'></td>
+        <td><div class='menu_img menu_cable_multimode'></div></td>
+    </tr>
+    <tr><td class='h_center' colspan='3'><input type='submit' class='nav_button' value='Ok' style='padding: 6px 25px'></td></tr>
+  </table>
+</div>
+
+
+    <nodeny>cable_menu</nodeny>
+
+<div class='navmenu'>
+  <div class='row'>
+    <div class='col'>
+      <a href='#' data-action='move-all'><hr class='menu_img menu_move_all'>{{ lang.move_cable }}</a>
+      <a href='#' data-ajax='cable_rotate_edge'><img
+         src='{{ nodeny_domain }}/fibers/cable_rotate.png' width='60' height='23' class='menu_img'>{{ lang.rotate }}</a>
+      <a href='#' data-ajax='cable_fiber_add'><hr class='menu_img menu_fiber_add'>{{ lang.add_fiber }}</a>
+      {{#if joints }}
+        <a href='#' data-ajax='cable_remove_all_joints' data-confirm='yes'><hr class='menu_img menu_joints_remove'>{{ lang.remove_all_joints }}</a>
+      {{/if}}
+      <hr>
+      <a href='#' data-ajax='cable_remove' data-confirm='yes'><hr class='menu_img menu_unit_remove'>{{ lang.remove_the_cable }}</a>
+    </div>
+    <div class='col'>
+      <a href='#' data-ajax='link_with_scheme'><hr class='menu_img menu_unit_data'>{{ lang.link_with_scheme }}</a>
+      {{#if place_id }}
+        <a href='#' data-ajax='remove_from_container'><hr class='menu_img move_from_container'>{{ lang.remove_from_container }}</a>
+        <a href='#' data-menu='find_cable_break' data-menu-id='{{ id }}' data-menu-side='{{ side }}'><hr class='menu_img menu_cable_cut'>Знайти обрив</a>
+      {{/if}}
+    </div>
+  </div>
+</div>
+
+
+
+    <nodeny>cable_joint_menu</nodeny>
+
+<div class='navmenu'>
+    <a href='#' data-ajax='cable_joint_remove' data-confirm='yes'><hr class='menu_img menu_joint_remove'>{{ lang.remove_the_joint }}</a>
+    <a href='#' data-ajax='cable_joint_data'><hr class='menu_img menu_unit_data'>{{ lang.data }}</a>
+    {{#if place_id }}
+        <a href='#' data-ajax='remove_from_container'><hr class='menu_img move_from_container'>{{ lang.remove_from_container }}</a>
+    {{/if}}
+</div>
+
+
+
+    <nodeny>collapsed_cable_menu</nodeny>
+
+<div class='navmenu'>
+  <div class='row'>
+    <div class='col'>
+{{#if not_read_only }}
+      <a href='#' data-ajax='cable_joint_add'><hr class='menu_img menu_joint_add'>{{ lang.create_a_cable_joint }}</a>
+      {{#if can_align_x }}
+          <a href='#' data-ajax='cable_joint_align' data-type='x'><hr class='menu_img menu_vert_cable'>{{ lang.vertically }}</a>
+      {{/if}}
+      {{#if can_align_y }}
+          <a href='#' data-ajax='cable_joint_align' data-type='y'><hr class='menu_img menu_horis_cable'>{{ lang.horizontally }}</a>
+      {{/if}}
+      <a href='#' data-ajax='cable_fiber_add'><hr class='menu_img menu_fiber_add'>{{ lang.add_a_fiber }}</a>
+    </div>
+    <div class='col'>
+      <a href='#' data-ajax='cable_cut'><hr class='menu_img menu_cable_cut'>{{ lang.cut_the_cable }}</a>
+{{/if}}
+      <a href='#' data-ajax='cable_data' class='correct-click-position'><hr class='menu_img menu_unit_data'>{{ lang.data }}</a>
+{{#if trunk}}
+      <a href='#' data-action='show-trunk' data-trunk='{{ trunk }}'>Показать магистраль</a>
+{{/if}}
+    </div>
+{{#if linked_scheme }}
+    <div class='col'>
+        <a href='#' data-ajax='goto_linked_scheme'><hr class='menu_img link_with_scheme'>{{ lang.goto_linked_scheme }}</a>
+    </div>
+{{/if}}
+  </div>
+{{#if not_read_only }}<hr><a href='#' data-ajax='cable_remove' data-confirm='yes'><hr class='menu_img menu_cable_remove'>{{ lang.remove_the_cable }}</a>{{/if}}
+</div>
+
+
+    <nodeny>cable_data</nodeny>
+
+<form method='post' data-ajax='cable_data_save' action='#'>
+  <input type='hidden' name='id' value='{{ id }}'>
+  <table class='td_ok'>
+    <tr>
+      <td>{{ lang.name }}</td>
+      <td><input type='text' name='name' value='{{ name }}' autocomplete='off'{{#if read_only}} disabled='disabled'>{{/if}}</td>
+    </tr>
+    <tr>
+      <td>{{ lang.description }}</td>
+      <td><input type='text' name='description' value='{{ description }}' autocomplete='off'{{#if read_only}} disabled='disabled'{{/if}}>
+      </td>
+    </tr>
+    <tr>
+      <td>{{ lang.length_with_m }}</td>
+      <td><input type='text' name='length' value='{{ length }}' autocomplete='off'{{#if read_only}} disabled='disabled'{{/if}}>
+      </td>
+    </tr>
+{{#if trunks}}
+    <tr><td>{{ lang.Trunk }}</td><td>
+        <select name='trunk'{{#if read_only}} disabled='disabled'>{{/if}}>
+            <option value='0'{{#if_eq trunk 0}} selected{{/if_eq}}>-</option>
+        {{#each trunks}}
+            <option value='{{ this.id }}'{{#if this.selected }} selected{{/if}}>{{ this.name }}</option>
+        {{/each}}
+        </select></td>
+    </tr>
+{{/if}}
+{{#if map_types}}
+    <tr>
+      <td>{{ lang.Type }}</td>
+      <td>
+        <select name='map_type'{{#if read_only}} disabled='disabled'>{{/if}}>
+            <option value='0'{{#if_eq type 0}} selected{{/if_eq}}>-</option>
+        {{#each map_types}}
+            <option value='{{ this.id }}'{{#if this.selected }} selected{{/if}}>{{ this.type }}</option>
+        {{/each}}
+        </select></td>
+    </tr>
+{{/if}}
+{{#if stock_enabled}}
+    <tr>
+      <td>
+        {{ lang.Stock }} Id 
+    </td>
+      <td>
+        <input type='text' name='nodeny_obj_id' value='{{ nodeny_obj_id }}' autocomplete='off' style='width: 70pt' 
+          {{#if read_only}} disabled='disabled'{{/if}}>
+        {{#if nodeny_obj_id}}
+          <a href='?uid={{ nodeny_obj_id }}&amp;a=ajUserInfo&amp;domid=nodeny-obj-info'
+            data-ajax-into-here='1' class='ajax'>{{ lang.data }}</a>
+          <div id='nodeny-obj-info'></div>
+        {{/if}}
+      </td>
+    </tr>
+{{/if}}
+{{#if not_read_only}}
+    <tr><td colspan='2' class='h_center' style='padding-top: 5px;'><input type='submit' value='Ok' class='nav_button'></td></tr>
+{{/if}}
+  </table>
+</form>
+
+
+    <nodeny>cable_connector_menu</nodeny>
+
+<p>{{ lang.select_the_fiber_color }}</p>
+{{#each colors}}
+  <div style='border: 1px solid #dddddd; display: inline-block; margin-left: 3px; width: 14px; height: 14px; padding: 0'
+      data-select-color='{{ this.color }}' data-color-id='{{ this.id }}'>
+  </div>
+{{/each}}
+<script>
+  $('[data-select-color]').each(function()
+  {
+    let colors = $(this).data('select-color').split(' ');
+    let i = 0;
+    for( let color of colors )
+    {
+      let div = $('<div>');
+      div.css({
+        'width': (colors.length > 1 ? '50%' : '100%'),
+        'height': '100%',
+        'display': 'inline-block',
+        'background-color': color
+      });
+      $(this).append(div);
+      if( i++ ) break;
+    }
+  });
+</script>
+<br><hr>
+<a href='#' data-ajax='cable_fiber_remove' data-confirm='yes'>✖ {{ lang.remove_the_fiber }}</a>
+
+
+    <nodeny>find_cable_break</nodeny>
+
+<form method='post' data-ajax='cable_find_break' action='#'>
+  <input type='hidden' name='id' value='{{ id }}'>
+  <input type='hidden' name='side' value='{{ side }}'>
+  <div style='font-size: 150%'>
+    Відстань до обрива:
+    <input type='number' name='break' min='1' style='font-size: 100%; width: 40pt'>
+    <input type='submit' class='nav_button' value='Знайти'> 
+  </div>
+</form>
+<script>
+  fibers.set_map_view(true);
+  fibers.map_create();
+</script>
+
+
+    <nodeny>cable_joint_data</nodeny>
+
+<form method='post' data-ajax='cable_joint_data_save' action='#'>
+  <input type='hidden' name='id' value='{{ id }}'>
+  <input type='hidden' name='joint_num' value='{{ joint_num }}'>
+  <table class='td_ok'>
+    <tr><td>Намотано</td><td><input type='text' name='coil' value='{{ coil }}' autocomplete='off'> {{ lang.meters }}</td></tr>
+{{#if not_read_only}}<tr><td colspan='2' class='h_center'><input type='submit' value='Ok' class='nav_button'></td></tr>{{/if}}
+  </table>
+</form>
+
+    <nodeny>fiber_tip_drag</nodeny>
+
+<div class='navmenu'>
+  <a href='#' data-ajax='cable_fibers_order'><hr class='menu_img menu_fiber_order'>{{ lang.order_changing }}</a>
+  <a href='#' data-ajax='cable_fibers_move'><hr class='menu_img menu_fiber_move'>{{ lang.position_changing }}</a>
+</div>
+
+
+
+    <nodeny>link_menu</nodeny>
+
+<div class='navmenu'>
+  <a href='#' data-ajax='link_joint_add'><hr class='menu_img menu_joint_add'>{{ lang.create_a_link_joint }}</a>
+  <a href='#' data-ajax='link_remove'><hr class='menu_img menu_unit_remove'>{{ lang.remove }}</a>
+</div>
+
+
+
+    <nodeny>link_joint_menu</nodeny>
+
+<div class='navmenu'>
+  <a href='#' data-ajax='link_joint_remove' data-confirm='yes'><hr class='menu_img menu_joint_remove'>{{ lang.remove_the_joint }}</a>
+</div>
+
+
+
+    <nodeny>bookmark_create</nodeny>
+
+<form method='post' data-ajax='bookmark_create' action='#' data-autoclose='1'>
+  <input type='hidden' name='x' value='{{ cy.pan.x }}'>
+  <input type='hidden' name='y' value='{{ cy.pan.y }}'>
+  <input type='hidden' name='zoom' value='{{ cy.zoom }}'>
+  <table class='td_ok'>
+    {{ lang.bookmark_name }} <input type='text' name='name' value='' autocomplete='off'> <input type='submit' value='Ok' class='nav_button'>
+  </table>
+</form>
+
+
+    <nodeny>bookmark_item</nodeny>
+
+<div>
+  <a href='#' data-viewport='1' style='display: inline-block; float: left;'>{{ title }}</a>
+  <a href='#' data-remove-bookmark='1' style='display: inline-block; float: right;'>✖</a>
+  <div style='clear: both'></div>
+</div>
+
+
+    <nodeny>history</nodeny>
+
+<div>
+  <table>
+    <tr>
+      <td class='v_top'>
+        <ul>
+        {{#each history}}
+          <li class='nowrap'><span class='disabled small'>{{ this.time }}</span> {{ this.action }}</li>
+        {{/each}}
+        </ul> 
+      </td>
+      <td class='v_top'>
+        <ul>
+        {{#each future}}
+          <li class='nowrap'><span class='disabled small'>{{ this.time }}</span> {{ this.action }}</li>
+        {{/each}}
+        </ul>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+    <nodeny>scheme_data</nodeny>
+
+<form method='post' data-ajax='scheme_data_save' action='#' class='txtpadding' style='display: flex;'>
+  <input type='hidden' name='id' value='{{ id }}'>
+  <table class='td_ok'>
+    {{#if is_block }}<tr><td colspan='2' class='big h_center'>{{ lang.Scheme_blank }}</td></tr>
+    {{ else }}<tr><td>{{ lang.Scheme_id }}</td><td class='wide_input'><input type='text' value='{{ gid }}' disabled='disable' style='color: #000'></div></td></tr>
+    {{/if}}
+    <tr><td>{{ lang.name }}</td><td class='wide_input'><input type='text' name='name' value='{{ name }}'></td></tr>
+    {{#if can_change_sharing }}
+        <tr><td style='max-width: 150pt;'>{{ lang.available_to_everyone }}</td>
+            <td><select name='shared'>
+                  <option value='0'{{#if_eq shared 0}} selected{{/if_eq}}>{{ lang.No }}</option>
+                  <option value='1'{{#if_eq shared 1}} selected{{/if_eq}}>{{ lang.ReadOnly }}</option>
+                  <option value='2'{{#if_eq shared 2}} selected{{/if_eq}}>{{ lang.FullAccess }}</option>
+                </select>
+            </td>
+        </tr>
+        {{#unless is_block }}
+            <tr><td>{{ lang.in_favorites }}</td>
+              <td><input value='1' name='favorite' type='checkbox' {{ favorite_checked }}></td></tr>
+            <tr><td>{{ lang.inner_data_in_db }}</td>
+              <td class='wide_input'><input type='text' name='inner_data_db' value='{{ inner_data_db }}'></td></tr>
+            <tr><td>&nbsp;</td><td class='wide_input'>server:db_name:user:password:db_table</td></tr>
+            <tr><td>{{ lang.inner_data_db_fields }}</td><td class='wide_input'>
+                <input type='text' name='inner_data_db_fields' value='{{ inner_data_db_fields }}'></td></tr>
+            <tr><td>&nbsp;</td><td class='wide_input'>field(s):tx_value:rx_value.<br>
+              <span class='disabled'>For example:</span> olt_id+llid:tx:rx</td></tr>
+        {{/unless}}
+    {{else}}
+      {{#if shared }}
+        <tr><td colspan='2' style='max-width: 300pt;'>
+          <p>{{ lang.available_to_everyone }}</p>
+          <p>{{ lang.want_a_personal_scheme }}</p>
+        </td></tr>
+      {{/if}}
+    {{/if}}
+    {{#unless ro }}
+        <tr><td colspan='2' class='h_center'><br><input type='submit' value='{{ lang.Save }}' class='nav_button'></td></tr>
+    {{/unless}}
+  </table>
+<div>
+    <p>Tags:</p>
+    {{#each settings.tags}}
+      <div class='nowrap'><span style='min-width: 11.5pt; display: inline-block;'>{{@key}}</span> <input type='text' name='tag_{{@key}}' value='{{this}}'></div>
+    {{/each}}
+</div>
+<div>
+{{#if is_block }}{{ else }}
+  {{#if access_cable_types }}
+  <ul>
+    <li><a class='new_window' href='{{current_url}}&a=op_modal&act=fibers_cable_types'>{{ lang.Cable_types }}</a></li>
+    <li><a class='new_window' href='{{current_url}}&a=op_modal&act=fibers_container_types'>{{ lang.Container_types }}</a></li>
+    <li><a class='item can-toggle new_window' href='{{current_url}}&a=op_modal&act=fibers_trunks' id='btn-trunks-edit'>{{ lang.Trunks }}</a></li>
+  </ul>
+  {{/if}}
+{{/if}}
+</div>
+</form>
+
+
+    <nodeny>search</nodeny>
+
+<div>
+  <table class='td_ok'>
+    {{#each search}}
+    <tr>
+      <td class='v_top nowrap'>{{ this.type }}</td>
+      <td class='v_top nowrap'><a href='#' data-action='center_unit_by_name' data-id='{{ this.id }}'>{{ this.name }}</a></td>
+    </tr>
+    {{/each}}
+  </table>
+</div>
+
+
+    <nodeny>container_menu</nodeny>
+
+<div class='navmenu'>
+  <a href='#' data-ajax='frame_data'><hr class='menu_img menu_unit_data'>{{ lang.data }}</a>
+{{#if not_read_only }}
+  {{#if has_parent }}
+      <a href='#' data-ajax='remove_from_container'><hr class='menu_img move_from_container'>{{ lang.remove_from_container }}</a>
+  {{/if}}
+{{/if}}
+{{#if is_infrastructure_view }}
+  <a href='#' data-action='map_unit_position'><hr class='menu_img menu_map'>{{ lang.set_on_map }}</a>
+{{/if}}
+{{#if not_read_only }}
+  <hr>
+  <a href='#' data-ajax='frame_remove' data-confirm='yes'><hr class='menu_img menu_unit_remove'>{{ lang.remove_container }}</a>
+{{/if}}
+</div>
+
+
+    <nodeny>map_marker_menu</nodeny>
+
+<div class='navmenu'>
+  <p>{{ name }}</p>
+  <p class='small'>{{ description }}</p>
+  <a href='#' data-action='map_unit_center_view'><hr class='menu_img menu_aim' style='margin: 0 16px 0 8px'>{{ lang.Show }}</a>
+  <a href='#' data-ajax='map_unit_remove' data-confirm='yes'><hr class='menu_img menu_unit_remove'>{{ lang.remove_from_map }}</a>
+</div>
+
+
+    <nodeny>show_collection</nodeny>
+
+<div class='big error txtpadding h_center'>{{ lang.Blanks_collection }}</div>
+<div id='collection_container'>
+  <a href='#' class='btn-add' data-ajax='into_collection'>{{ lang.Into_collection }}</a>
+</div>
+<script>
+  fibers.show_collection(0, 0);
+</script>
+
+
+    <nodeny>show_all_schemes</nodeny>
+
+<div id='collection_container' class='all-schemes'>
+    <div id='collection_pagination'></div>
+</div>
+<script>
+  var curent_page = {{ menuAddPage }};
+  $('#id_next_scheme_page').attr('data-menu-add-page', curent_page+1).attr('data-menu', 'show_all_schemes');
+  fibers.show_collection(1, curent_page);
+</script>
+
+
+    <nodeny>collection_item_menu</nodeny>
+
+<div class='navmenu'>
+  <a href='#' data-action='copy-from-collection'>Скопировать в буфер обмена</a>
+  <a href='{{nodeny_api_url}}&a=fibers&gid={{scheme_gid}}'>{{ lang.Show }}</a>
+</div>
+
+
+    <nodeny>link_cable_with_scheme</nodeny>
+
+<form method='post' data-ajax='link_with_scheme_save' action='#'>
+  <input type='hidden' name='id' value='{{ id }}'>
+  <table class='td_ok'>
+    <tr><td>{{ lang.cable_ref }}</td><td>{{ cable_ref }}</td></tr>
+    <tr><td>{{ lang.cable_in_linked_scheme }}</td><td><input type='text' name='linked_scheme' value='{{ linked_scheme }}' autocomplete='off' style='width: 150pt'></td></tr>
+    <tr><td colspan='2' class='h_center'><input type='submit' value='Ok' class='nav_button'></td></tr>
+  </table>
+</form>
+
+
+    <nodeny>tags_filter</nodeny>
+
+{{#if the_tags}}
+  {{#each the_tags}}
+    <label><input data-tag-filter='{{this.tag}}' type='checkbox'{{#if checked}} checked{{/if}}> {{this.title}}</label><br>
+  {{/each}}
+{{else}}
+  Your scheme has no tags
+{{/if}}
+<script>
+  $('[data-tag-filter]').on('change', function() {
+    const checkbox = $(this);
+    const tag = checkbox.data('tag-filter').toString();
+    const index = fibers.tag_filters.indexOf(tag);
+    if( index !== -1 ) fibers.tag_filters.splice(index, 1);
+    if( checkbox.is(':checked') ) fibers.tag_filters.push(tag);
+    fibers.get_all_now();
+  });
+</script>
+

@@ -1,0 +1,18 @@
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<link rel='stylesheet' href='{{ nodeny_domain }}/fibers/fibers.css' type='text/css'>
+{% if scheme %}<link href='{{ nodeny_domain }}/cytoscape.js-panzoom.css' rel='stylesheet' type='text/css'>{% endif %}
+<script src='{{ nodeny_domain }}/js/cytoscape.min.js'></script>
+<script src='{{ nodeny_domain }}/js/lodash.min.js'></script>
+<script src='{{ nodeny_domain }}/js/cytoscape-edgehandles.js'></script>
+{% if scheme %}<script src='{{ nodeny_domain }}/js/cytoscape-panzoom.js'></script>{% endif %}
+<script src='{{ nodeny_domain }}/js/handlebars.min.js'></script>
+{% if ! is_preview && scheme %}
+<script>
+function initMap() {}
+window.initMap = initMap;
+</script>
+<script defer src='https://maps.googleapis.com/maps/api/js?key={{ cfg::fibers_map_api_key }}&libraries=geometry&loading=async&callback=initMap'></script>
+{% endif %}
+<script src='{{ nodeny_domain }}/fibers/settings.js'></script>
+
+<link rel='prefetch' href='{{ nodeny_domain }}/fibers/menu_all2.png'>

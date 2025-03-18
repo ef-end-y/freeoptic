@@ -1,0 +1,17 @@
+{% one_line %}
+{% if pic %}
+<div class='column_message'>
+  <div>
+    <div class='columns'>
+        <img src='{{ pic }}'>
+        {% if picmsg %}<p class='error'>{{ picmsg }}</p>{% endif %}
+    </div>
+  </div>
+  <div>
+    <div class='columns {{ msg_class }}'>{{ msg }}</div>
+  </div>
+</div>
+{% else %}
+<div class='{{ msg_class }}'>{{ msg }}</div>
+{% endif %}
+{% one_line_end %}

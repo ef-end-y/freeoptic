@@ -1,0 +1,60 @@
+{% global_block template::base.head %}
+
+<script type='text/javascript' src='{{cfg::img_dir}}/js/md5.js'></script>
+
+
+<script type='text/javascript'>
+var login_start = function()
+{
+    $('#_uu').focus();
+    setTimeout(
+        function() {
+            $('.login_box').fadeOut( 6000, function()
+            {
+                $('#main_block').html("<div id='window_reload_btn' onclick='window.location.reload(); return false'></div>");
+            });
+        },
+        120*1000
+    );
+}
+
+var login_submit = function()
+{
+    var form = $('#login_form');
+    var pp = form.find('#_pp');
+    var salt = form.find('input[name="_salt"]');
+    form.find('input[name="_hash"]').val( hex_md5(salt.val() + ' ' + pp.val()) );
+    pp.remove();
+    salt.remove();
+    return true;
+}
+</script>
+
+{% endblock %}
+
+{% global_block template::base.document_ready %}
+    login_start();
+{% endblock %}
+
+{% global_block template::login_base.main %}
+    <form action='?' onsubmit='login_submit()' id='login_form'>
+        <input type='hidden' name='a' value='_login'>
+        <input type='hidden' name='_ses' value='{{ _ses }}'>
+        <input type='hidden' name='_salt' value='{{ _salt }}'>
+        <input type='hidden' name='_mod' value='{{ _mod }}'>
+        <input type='hidden' name='_hash' value='error'>
+        <table class='login_form'>
+            <tr>
+                <td>{{ lang::mLogin_login }}</td>
+                <td><input name='_uu' id='_uu' size='30' maxlength='32' value='' autocomplete='off' type='text' tabindex='1'></td>
+                <td rowspan='2' class='h_center'><input type='submit' value='{{ lang::btn_enter }}' class='nav_button' tabindex='3'></td>
+            </tr>
+            <tr>
+                <td>{{ lang::mLogin_pass }}</td>
+                <td><input name='_pp' id='_pp' size='30' type='password' autocomplete='current-password' tabindex='2'></td>
+            </tr>
+        </table>
+    </form>
+{% endblock %}
+
+{% include 'login_base.html' %}

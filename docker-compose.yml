@@ -1,0 +1,52 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: freeoptic
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    networks:
+      - freeoptic-network
+    environment:
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-freeoptic}
+      - DB_USER=${DB_USER:-freeoptic}
+      - DB_PASSWORD=${DB_PASSWORD:-hardpass}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  db:
+    image: mysql:8.0
+    container_name: freeoptic-db
+    restart: unless-stopped
+    ports:
+      - "3333:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-freeoptic}
+      MYSQL_USER: ${DB_USER:-freeoptic}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-hardpass}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-hardpass}
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./freeoptic.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - freeoptic-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "freeoptic", "-p${DB_PASSWORD:-hardpass}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  freeoptic-network:
+    driver: bridge

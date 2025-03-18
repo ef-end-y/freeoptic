@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+<title>{{ cfg::net_title }}</title>
+<meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
+<meta name='author' content='Stanislav Volyk https://github.com/ef-end-y'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+<link rel='stylesheet' href='{{cfg::img_dir}}/freeoptic.css' type='text/css'>
+<script src='{{cfg::img_dir}}/js/jquery-3.5.1.min.js'></script>
+<script src='{{cfg::img_dir}}/js/nody_modal.js'></script>
+<script src='{{cfg::img_dir}}/js/nody_select.js'></script>
+<script src='{{cfg::img_dir}}/js/nody.js'></script>
+{{ template::base.head }}
+<script>
+var nody;
+$(document).ready(function() {
+    nody = {
+        msg_after_submit : '{{lang::msg_after_submit}}',
+        img_after_submit : '{{cfg::img_dir}}/loading.gif',
+        script_url       : '{{ses::script_url}}',
+        document_ready   : nody_ready
+    };
+    nody.document_ready();
+    {{ template::base.document_ready }}{{ document_ready }}
+})
+</script>
+</head>
+<body class='resolution'{{ template::base.document_body }}>
+<div id='buffer' style='display:none'>{{ buffer }}</div>
+{% if debug %}
+    <a id='debug_href' class='debug_href' href='#'>Debug{% if debug_errors %} {{ debug_errors }} errors{% endif %}</a>
+    <div id='debug'>{{ debug }}</div>
+{% endif %}
+
+<div id='header'>
+    <div></div>
+    <div class='title'>{{ cfg::net_title }}</div>
+    <div class='main'>{{ template::base.top_block }}{{ top_block }}</div>
+</div>
+<div id='top_block'></div>
+<div id='top_lines'>{{ top_lines }}</div>
+<div id='content_block'>
+    {% if left_block %}
+        <div id='left_block' class='left_block {{css_left_block}}'>{{ left_block }}</div>
+    {% endif %}
+    <div id='main_block'>{{ main_block }}</div>
+    {% if right_block %}
+        <div id='right_block' class='right_block {{css_right_block}}'>{{ right_block }}</div>
+    {% endif %}
+</div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+
+#  -------  Плагины только для административной части ------
+#
+#    код    | только |  имя файла     | комментарий
+#           | ajax?  |  (без .pl)     |
+
+_login          0       login           {noauth=>1}
+logout          0       base_cmd        {noauth=>1}
+
+[::admin:1]   
+
+ajModalClose    1       ajModalClose    Закрытие модального окна
+ajAdmin         1       ajAdmin         Операции с учеткой админа
+
+admin           0       admin           Пользователи
+main            0       fibers          {descr=>'ВОЛС'}
+op              0       op              Настройки
+settings        0       settings        Настройки
+ajFibers        1       ajFibers        {descr=>'ВОЛС ajax'}
+fibers          0       fibers          {descr=>'ВОЛС'}
+fibers_stock    0       users           {title=>'ВОЛС Склад', top_tmpl=>'adm_top_fibers_users'}
+op_modal        0       op              {top_tmpl=>'adm_top_sel_user'}
+[u_:user/:user:0]
+
+[e_:ext_user/:ext_user:0]

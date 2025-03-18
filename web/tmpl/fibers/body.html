@@ -1,0 +1,101 @@
+{% if scheme && !is_preview %}
+
+<div class='main_menu add_listeners'>
+  <div id='main_menu_nav'>
+    <a href='{{ Url.url(gid=>"") }}' class='main_menu_link'>{{ lang.main_menu }}</a>
+    <div id='main-panel'>
+      <div class='disabled-overlay'></div>
+      <div class='dropdown'>
+        <a href='#' id='scheme-dropdown-btn' class='dropdown-btn'>{{ lang.scheme }}</a>
+        <div class='dropdown-content'>
+          <a href='#' class='item' data-ajax='scheme_data'>{{ lang.scheme_data }}</a>
+          <a href='#' class='item toggle-on-read-only' data-action='map_center'>{{ lang.map_center }}</a>
+          <a href='#' class='item' data-action='export-json'>{{ lang.scheme_export }}</a>
+          <a href='#' class='item toggle-on-read-only' data-menu='import_menu' data-menu-view='center'>{{ lang.scheme_import }}</a>
+          <a href='#' class='item' data-action='export-img'>{{ lang.image_export }}</a>
+          <a href='#' class='item can-toggle' data-action='toggle-fibers-desc' id='toggle-fibers-desc'>{{ lang.fibers_colors }}</a>
+          <a href='#' class='item can-toggle' data-action='toggle-description' id='toggle-description'>{{ lang.descriptions }}</a>
+          <span id='btn-scheme-remove-container' style='display: none;'><a href='#' class='item toggle-on-read-only' data-ajax='scheme_remove' data-confirm='yes' id='btn-scheme-remove'>{{ lang.remove }}!</a></span>
+          <!--- <a href='#' class='item' data-ajax='check_history' id='btn-scheme-remove'>Check history</a> -->
+        </div>
+      </div>
+      <a href='#' id='scheme_op_link' onclick='$("#scheme_op").toggle(); $(this).toggleClass("downed")'></a>    
+      <div id='main-panel-buttons'>
+        <a href='#' data-action='toggle-simplified' id='btn-toggle-simplified' class='can-toggle'>Simplified</a>
+        <a href='#' data-action='toggle-map-view' id='toggle-map-view' class='main_menu_btn btn-map' title='{{ lang.map }}'></a>
+        <a href='#' data-action='toggle-infrastructure-view' id='toggle-infrastructure-view' class='main_menu_btn btn-infrastructure' title='{{ lang.infrastructure }}'></a>
+        <a href='#' data-action='toggle-all-linked-schemes' id='toggle-all-linked-schemes' class='main_menu_btn btn-all-schemes' title='{{ lang.show_all_linked_schemes }}'></a>
+        <a href='#' data-action='tags-filter' data-set-click-position='1' class='main_menu_btn btn-checkbox' id='tags-filter-btn'></a>
+        <a href='#' data-ajax='history' class='main_menu_btn btn-history' title='{{ lang.history }}'></a>
+        <div id='history-buttons' style='display: inline-block;'>
+          <a href='#' data-ajax='step_back' class='main_menu_btn btn-undo' title='{{ lang.Undo }}'></a>
+          <a href='#' data-ajax='step_forward' class='main_menu_btn btn-redo' title='{{ lang.Redo }}'></a>
+        </div>
+        <a href='#' data-action='copy' class='main_menu_btn btn-copy' title='{{ lang.Copy }}'></a>
+        {% if ! is_guest %}
+          <a href='#' data-menu='show_collection' class='main_menu_btn btn-collection' data-menu-view='full' data-menu-add-fibers='1' title='{{ lang.Collection }}'></a>
+        {% endif %}
+        {% if inner_data_db %}
+          <a href='#' data-action='toggle-tx-rx' id='btn-toggle-tx-rx' class='can-toggle'>TX/RX</a>
+        {% endif %}
+        <a href='#' id='btn-read-only' data-action='read-only' title='{{ lang.ReadOnly }}' class='can-toggle'>RO</a>
+        {% if is_admin %}
+          <a href='#' data-menu='show_all_schemes' data-menu-view='full' data-menu-add-fibers='1' data-menu-add-page='0'>ADMIN</a>
+        {% endif %}
+      </div>
+      <span id='global_search'>
+        </select><input type='text'>
+      </span>
+      <div id='map-button-panel' style='display:none'>
+        <a href='#' data-action='toggle-map-cable-length' id='btn-toggle-map-cable-length' class='can-toggle'>{{ lang.Track_length }}</a>
+      </div>
+    </div>
+  </div>
+  <div id='wait_scheme_loading'>
+    <img src='/loading.gif' class='ajax_wait hidden'>
+  </div>
+  <div></div>
+
+</div>
+<div id='scheme_op' class='main_menu fiber_submenu add_listeners' style='display: none'>
+  <a href='#' onclick='$("#scheme_op_link").click(); return false'>x</a>
+  <a href='#' data-ajax='scheme_data'>{{ lang.scheme_data }}</a>
+  <form action='{{ Url.url(gid=>"") }}' style='display: inline-block;'>
+    <input type='text' name='gid'>
+    <input type='submit' class='nav_button' value='{{ lang.open_scheme }}'>
+  </form>
+</div>
+
+<div class='row'>
+  <div id='map-container' style='display:none; resize:horizontal; overflow:auto; width:49%'>
+    <div style='position: absolute; z-index: 100;'>
+      <span id='map_action_title' class='big error txtpadding hide_if_empty' style='background-color: #ffffff;'></span>
+    </div>
+    <div id='gmap' style='height:100%;'></div>
+  </div>
+  <div id='cy' style='flex:1;'></div>
+</div>
+
+<div id='fibers__options_box' class='box add_listeners' style='position: absolute; right:5px; top:0'>
+  <div class='box_tr'><div class='box_tl'><div class='box_t'>
+    <div class='box_title'><span style='display: block;'><a
+         href='#' data-show-or-hide='fibers__operation_block' style='display: block;'>Bookmarks</a></span></div>
+  </div></div></div>
+  <div class='box_r'><div class='box_l' style='padding-top: 5px'>
+    <div class='fibers__operation_block'>
+      <div id='show_all' class='navmenu big' style='padding: 5px; display: none'>
+        <a href='#' data-action='show_all'>{{ lang.Show_all }}</a>
+      </div>
+      <div class='navmenu'>
+        <a href='#' data-fibers-menu='bookmark_create'>♥ {{ lang.add_to_bookmarks }}</a>
+        <div id='fibers__bookmarks_list' class='hide_if_empty'></div>
+      </div>
+    </div>
+  </div></div>
+  <div class='box_br'><div class='box_bl'><div class='box_b'></div></div></div>
+</div>
+{% else %}
+
+<div id='cy' style='opacity: 0.4' class='cy_as_background'></div>
+
+{% endif %}

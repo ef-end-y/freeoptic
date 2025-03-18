@@ -1,0 +1,16 @@
+<div id='main-nav'>
+    <span class='login_chain'>{{login_chain}}</span>
+    <a href='?a=fibers'{% if Url.a eq 'main' || Url.a eq 'fibers' %} class='active'{% endif %}>Editor</a>
+    {% if admin.chk_privil(3) %}
+        <a href='?a=settings'{% if Url.a eq 'settings' || Url.a eq 'admin' %} class='active'{% endif %}>Settings</a>
+    {% endif %}
+    {{urls}}
+    {% if admin %}
+        <a href='{{ Url.url(a=>"logout") }}'>{{ lang::btn_logout }}</a>
+    {% endif %}
+    <span class='languages'>
+        {% for lang_id in cfg::languages_list %}
+            <a href='{{ Url.url(set_nolang=>$T{lang_id}) }}'{% if cfg::Lang eq lang_id %} class='active'{% endif %}>{{ lang_id }}</a>
+        {% endfor %}
+    </span>
+</div>

@@ -1,0 +1,49 @@
+{% global_block template::base.head %} {% include 'header.html' %} {% endblock %}
+
+    {% global_block template::base.document_ready %} {% include 'index.js' %} {% endblock %}
+    {% if is_preview %}{% global_block template::base.document_body %} style='opacity: 0'{% endblock %}{% endif %}
+    {% include 'body.html' %}
+
+{% if !scheme && !is_preview %}
+    <div id='fibers_main_screen'>
+        {% if error_msg %}<div class='error_msg'>{{ error_msg }}</div>{% endif %}
+        <div class='content'>
+        {% if action %}
+        {% else %}
+            <script>
+                sessionStorage.setItem('fibers_path_start', '');
+                sessionStorage.setItem('fibers_path_end', '');
+            </script>
+            <div class='important_links'>
+                <form action='{{ Url.url() }}' class='nowrap'>
+                    <input type='hidden' name='a' value='{{ Url.a }}'>
+                    <input type='text' name='gid'>
+                    <input type='submit' class='nav_button' value='{{ lang.open_scheme }}'>
+                </form>
+                <a href='{{ Url.url(action=>"new_scheme") }}' class='nav'>{{ lang.create_new_scheme }}</a>
+                {% if schemes %}<a href='#' data-show-or-hide='not_favorite' class='nav'>{{ lang.Other_schemes }}</a>{% endif %}
+            </div>
+            {% if schemes %}
+            <div>
+                <div class='your_schemes not_favorite' style='display: none;'>
+                    <p class='title'>{{ lang.Other_schemes }}:</p>
+                {% for scheme in schemes %}
+                    <p class='nowrap'><span class='disabled small inline_block h_right' style='min-width: 65pt'>{{ scheme.last_modified }}</span> <a href='{{ scheme.url }}'>{{ scheme.name }}</a></p>
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% if favorite_schemes %}
+            <div>
+                <p class='title'>{{ lang.your_schemes }}:</p>
+                <div class='your_schemes'>
+                {% for scheme in favorite_schemes %}
+                    <p class='nowrap'><span class='disabled small inline_block h_right' style='min-width: 65pt'>{{ scheme.last_modified }}</span> <a href='{{ scheme.url }}'>{{ scheme.name }}</a></p>
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+        </div>
+    </div>
+{% endif %}
