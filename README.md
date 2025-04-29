@@ -1,4 +1,7 @@
 # FreeOptic - IDE for creating fiber-optic schemes
+
+Online demo https://all-optic.com/
+
 ## Installation
 
 ```
