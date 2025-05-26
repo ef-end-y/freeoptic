@@ -40,7 +40,7 @@ let settings = {
     frame_border_width: 2,
     frame_connector_width: 21,
     mute_color: '#e3e3e3',
-    change_scheme_detailization_zoom: 0.235,
+    change_scheme_detalization_zoom: 0.235,
     min_auto_zoom: 0.132,
     area_border_k: 0.8
 };
@@ -124,7 +124,7 @@ fibers = {
                 'shape': 'rectangle'
             }
         },{
-            selector: '.hidden,.temporary_hidden,[ignore]',
+            selector: '.hidden,.temporary_hidden,[ignore],.hide_picture_when_frame_is_selected',
             style: {
                 'opacity': 0
             }
@@ -369,6 +369,27 @@ fibers = {
                 'text-background-color': '#007000'
             }
         },{
+            selector: 'node[cls="frame_inner"].accent.err',
+            style: {
+                'text-background-color': '#ef2929'
+            }
+        },{
+            selector: 'node[cls="frame_inner"].accent.warn',
+            style: {
+                'color': '#000000',
+                'text-background-color': '#ffff00'
+            }
+        },{
+            selector: 'node[cls="frame_inner"].accent.tx',
+            style: {
+                'text-background-color': '#35a9e8'
+            }
+        },{
+            selector: 'node[cls="frame_inner"].signal_ratio',
+            style: {
+                'color': '#009000'
+            }
+        },{
             selector: 'node[cls="frame_inner"][label].small-font',
             style: {
                 'font-size': 8.5
@@ -490,8 +511,13 @@ fibers = {
                 'z-index': 3100,
                 'shape': 'roundrectangle',
                 'background-color': '#a0a0a0',
-                'padding': 4,
+                'padding': 5,
                 'border-width': 0
+            }
+        },{
+            selector: 'node[cls="cable_joint_container"].monofiber,node[cls="cable_end_joint_container"].monofiber',
+            style: {
+                'padding': 2,
             }
         },{
             selector: 'node[cls="cable_end_joint"]',
@@ -573,6 +599,11 @@ fibers = {
             style: {
                 'z-index': 200,
                 'width': settings.collapsed_cable_width
+            }
+        },{
+            selector: 'edge[cls="collapsed_cable"].monofiber',
+            style: {
+                'width': settings.fiber_width - 1
             }
         },{
             selector: 'edge[cls="collapsed_cable"][label]', // 'edge[cls="collapsed_cable"][length]',

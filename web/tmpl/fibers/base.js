@@ -6,6 +6,7 @@ fibers.act_to_func = {
   'check_history'         : 'fibers.show_all_callback',
   'get_fragment'          : 'fibers.reload_new_scheme',
   'pon_path'              : 'fibers.show_all_callback',
+  'pon_create'            : 'fibers.show_all_callback',
   'frame_create'          : 'fibers.create_unit_callback',
   'frame_add_inner'       : 'fibers.replace_obj',
   'frame_inner_align'     : 'fibers.replace_obj',
@@ -35,6 +36,8 @@ fibers.act_to_func = {
   'cable_fiber_add'       : 'fibers.replace_obj',
   'cable_fiber_remove'    : 'fibers.cable_remove_fiber_callback',
   'cable_cut'             : 'fibers.show_all_callback',
+  'cable_insert_splitter' : 'fibers.cable_insert_splitter',
+  'cable_insert_splitter_now': 'fibers.show_all_callback',
   'cable_find_break'      : 'fibers.map_all_callback',
 
   'link_remove'           : 'fibers.link_remove_callback',
@@ -511,6 +514,7 @@ fibers.show_all_callback = function(data)
 		}
 
 		$('#show_all').css('display', data.path ? 'block' : 'none');
+		fibers.data_path_is_active = Boolean(data.path);
 
 		if( data.show_message )
 		{
@@ -544,6 +548,23 @@ fibers.show_all_callback = function(data)
 			} else if( zoom < fibers.settings.min_auto_zoom ) {
 				cy.zoom( fibers.settings.min_auto_zoom );
 				cy.center();
+			}
+		}
+	}
+
+	if( data.select_units )
+	{
+		let id_map = {};
+		for( el of fibers.cy.elements(':selectable') ) {
+			const id_with_side = $.grep(el.id().split(':'), function(n, i) {return parseInt(n) >= 0});
+			id_map[id_with_side.join(':')] = [ el ];
+			id_map[id_with_side[0]] ||= [];
+			id_map[id_with_side[0]].push(el);
+		}
+		for( const p of data.select_units ) {
+			const els = id_map[p];
+			if( els ) {
+				for( const el of els ) el.select();
 			}
 		}
 	}

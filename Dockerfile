@@ -23,7 +23,9 @@ RUN set -e \
   && rm -fR /usr/local/apache2/cgi-bin \
   && rm -fR /usr/local/apache2/htdocs \
   && ln -s /usr/local/freeoptic/cgi-bin/ /usr/local/apache2/cgi-bin \
-  && ln -s /usr/local/freeoptic/htdocs/ /usr/local/apache2/htdocs
+  && ln -s /usr/local/freeoptic/htdocs/ /usr/local/apache2/htdocs \
+  && cd /usr/local/freeoptic/ \
+  && perl install.pl -x
 
 EXPOSE 80  
 

@@ -5,24 +5,29 @@ use strict;
 use Debug;
 use JSON;
 
-my $err_only_in_pro_version = 'This feature is only available in pro version. Contact: max.begemot@gmail.com';
 my $fibers__xy_bounds = {
 	'x' => 25000,
 	'y' => 25000,
 };
-
 
 my $fibers__inner_xy_bounds = {
 	'x' => 800,
 	'y' => 2500,
 };
 
+my $err_only_in_pro_version = 'This feature is only available in pro version. Contact: max.begemot@gmail.com';
+
+my $CABLE_CREATE_WIDTH = 200;
+my $PON_CABLE_CREATE_WIDTH = 100;
+my $PON_LINK_CREATE_WIDTH = 60;
 my $inner_units_distance = 30;
 my $fiber_tips_distance = 30;
 my $import_scheme__max_units = 4000;
 my $import_scheme__max_links = 10000;
 
 my $MAX_FRAME_TAGS = 15;
+my $MIN_SIGNAL_LEVEL = -35;
+my $MAX_SIGNAL_LEVEL = -10;
 
 my $Uid = 0;
 
@@ -164,10 +169,12 @@ sub go
 		cable_fibers_move		=> \&cable_fibers_move,
 		cable_fiber_add			=> \&cable_fiber_add,
 		cable_fiber_remove		=> \&cable_fiber_remove,
+		cable_insert_splitter	=> \&cable_insert_splitter,
+		cable_insert_splitter_now	=> \&cable_insert_splitter_now,
+		cable_find_break		=> \&cable_find_break,
 		link_with_scheme		=> \&cable_link_with_scheme,
 		link_with_scheme_save	=> \&cable_link_with_scheme_save,
 		goto_linked_scheme		=> \&cable_goto_linked_scheme,
-		cable_find_break		=> \&cable_find_break,
 
 		move_into_container		=> \&move_into_container,
 		remove_from_container	=> \&remove_from_container,
@@ -197,6 +204,7 @@ sub go
 		scheme_data_save		=> \&scheme_data_save,
 		scheme_remove			=> \&scheme_remove,
 		check_history			=> \&check_history,
+#<HOOK>acts
 	);
 
 	if( !$scheme_id )
@@ -266,6 +274,32 @@ sub _corrupted_data
 	ApiError(L('Data is corrupted'));
 	die;
 }
+
+
+# --- Utils ---
+
+sub check_xy
+{
+	my($x, $y, $bounds, $ret_undef_if_err) = @_;
+	$bounds ||= $fibers__xy_bounds;
+	my $error = $x < -$bounds->{x} || $x > $bounds->{x} || $y < -$bounds->{y} || $y > $bounds->{y};
+	$error or return( int($x + ($x <=> 0)*0.5), int($y + ($y <=> 0)*0.5) );
+	defined $ret_undef_if_err ? return (undef, undef) : ApiError(L('coordinates_are_out_of_bounds'));
+}
+
+sub inner_count
+{
+	my($u, $inner_type) = @_;
+	$inner_type or return scalar keys %{$u->{inner_units}};
+	my $count = 0;
+	foreach my $iu( values %{$u->{inner_units}} )
+	{
+		$count++ if $iu->{type} eq $inner_type;
+	}
+	return $count;
+}
+
+# ---
 
 sub search
 {
@@ -466,7 +500,7 @@ sub _get_all_linked_schemes
 sub copy
 {
 	my($scheme_id, undef, undef) = @_;
-	my $res = get_all($scheme_id, { return=>['links'], process_area=>1 });
+	my $res = get_all($scheme_id, { return=>['links'], process_area=>1, copy_action=>1 });
 
 	my $units_count = scalar @{$res->{units}};
 	my $ret_message = "$units_count units were copied";
@@ -605,6 +639,7 @@ sub get_all
 	map{ $params->{return}{$_} = 1 } ( @r );
 
 	my $inner_titles = {};
+	my $inner_styles = {};
 	if( $params->{tx_rx_mode} =~ /^(TX|RX)$/ )
 	{
 		my($db_server, $db_name, $db_user, $db_pw, $db_table) = split / *: */, $Scheme_data->{inner_data_db};
@@ -626,11 +661,14 @@ sub get_all
 		);
 		$ext_db->connect;
 		$ext_db->is_connected or ApiError(L('inner data db connection error'));
+
+		my $s = (from_json($Scheme_data->{settings} || '{}'))->{signal_levels};
 		my $db = $ext_db->sql("SELECT `$tx_field`, `$rx_field`, ".join(', ', map{ "`$_`" } @id_fields)." FROM `$db_table` LIMIT 15000");
 		while( my %p = $db->line )
 		{
 			my $remote_id = join ':', map{ $p{$_} } @id_fields;
-			$inner_titles->{$remote_id} = $params->{tx_rx_mode} eq 'RX' ? $p{$rx_field} : $p{$tx_field};
+			my $val = $inner_titles->{$remote_id} = $params->{tx_rx_mode} eq 'RX' ? $p{$rx_field} : $p{$tx_field};
+#<HOOK>get_all_tx_rx
 		}
 	}
 
@@ -678,7 +716,8 @@ sub get_all
 	my $db = Db->sql(
 		'SELECT u.*, c.xa, c.ya, c.xb, c.yb, c.joints, c.length, c.trunk '.
 		'FROM fibers_units u LEFT JOIN fibers_cables c ON u.tied=c.id '.
-		'WHERE u.removed=0 AND u.scheme_id=? ORDER by u.id', $scheme_id
+		'WHERE u.removed=0 AND u.scheme_id=? ORDER by u.type=?',
+		$scheme_id, 'container'
 	);
 
 	if( keys %$inner_titles )
@@ -718,8 +757,9 @@ sub get_all
 				$iu->{name} = '';
 				if( exists $iu->{remote_id} && $inner_titles->{$iu->{remote_id}} )
 				{
-					$iu->{name} = $inner_titles->{$iu->{remote_id}};
-					last;
+					my $r_id = $iu->{remote_id};
+					$iu->{name} = $inner_titles->{$r_id};
+					$iu->{style} = $inner_styles->{$r_id} if $inner_styles->{$r_id};
 				}
 			}
 		}
@@ -735,13 +775,15 @@ sub get_all
 			my $y2 = $box->{y_max};
 
 			if(
-				($x1 < $area_x1 && $x2 < $area_x1) ||
-				($x1 > $area_x2 && $x2 > $area_x2) ||
-				($y1 < $area_y1 && $y2 < $area_y1) ||
-				($y1 > $area_y2 && $y2 > $area_y2)
+				!$visible_containers{$id} && (
+					($x1 < $area_x1 && $x2 < $area_x1) ||
+					($x1 > $area_x2 && $x2 > $area_x2) ||
+					($y1 < $area_y1 && $y2 < $area_y1) ||
+					($y1 > $area_y2 && $y2 > $area_y2)
+				)
 			) {
 				$hidden_id{$id} = 1;
-				$data->{type} ne 'container' && next;
+				next;
 			}
 		}
 		$data->{grp} = $data->{scheme_id}.':'.$data->{grp} if int($data->{grp}) && !$params->{export_action};
@@ -772,16 +814,6 @@ sub get_all
 		}
 		map{ $stat_id->{$_} = 1 } keys %{$u->{inner_units}};
 		$visible_containers{$data->{place_id}} = 1 if $data->{place_id};
-	}
-
-	foreach my $id( keys %hidden_id )
-	{
-		if( exists $visible_containers{$id} ) {
-			delete $hidden_id{$id};
-		} else {
-			delete $units{$id};
-			delete $stat{$id};
-		} 
 	}
 
 	if( $params->{return}{links} )
@@ -987,10 +1019,27 @@ sub _delete_scheme_now
 	Db->do('DELETE FROM fibers_trunks WHERE scheme_id=?', $scheme_id);
 }
 
+sub _validate_signal_levels
+{
+	my($levels) = @_;
+	ref $levels eq 'ARRAY' or return '';
+	scalar @$levels == 4 or return '';
+	my @levels = map{ +$_ } @$levels;
+	$levels[0] >= $MIN_SIGNAL_LEVEL or return '';
+	$levels[1] > $levels[0] or return '';
+	$levels[2] > $levels[1] or return '';
+	$levels[3] > $levels[2] or return '';
+	$levels[3] <= $MAX_SIGNAL_LEVEL or last;
+	return \@levels;
+}
+
 sub import_all
 {
 	my($scheme_id, undef, $act) = @_;
 	my($data, $x, $y);
+	my $is_import_action = 0;
+
+#<HOOK>import_all
 	{   # paste into the scheme/collection from clipboard
 		($x, $y) = check_xy(ses::input_int('x', 'y'));
 		my %p = Db->line(
@@ -1101,12 +1150,23 @@ sub import_all
 			};
 			_corrupted_data();
 		}
+		if( !$is_import_action && ref $d->{joints} )
+		{
+			foreach my $joint( @{$d->{joints}} )
+			{
+				$joint->{x} += $x;
+				$joint->{y} += $y;
+			}
+		}
 		push @$links, $d;
 	}
 
+	my $select_units_on_viewport = [];
 	my @warn = ();
 
 	Db->begin_work or _db_error();
+
+#<HOOK>import_all_transaction
 
 	my %already_moved = ();
 	my %old_to_new_id = ();
@@ -1140,15 +1200,16 @@ sub import_all
 				$i->[1] = int $old_to_new_id{int($i->[1])} if int($i->[1]) > 0;
 			}
 		}
-		$p->{grp} = 0;
+		$p->{grp} = 0 if !$is_import_action;
 		my $u = Fibers::Units->create($p, '', $create_params);
 		$old_to_new_id{$id} = $u->{id};
 		$tieds->{$tied} = $u->{tied} if $tied;
-		if( !$u->{tied} || !$already_moved{$u->{tied}}++ )
+		if( !$is_import_action && (!$u->{tied} || !$already_moved{$u->{tied}}++) )
 		{
 			$u->change_position($x, $y);
 			$u->save('', {no_history=>1, no_commit=>1});
 		}
+		push @$select_units_on_viewport, $u->{id};
 	}
 
 	foreach my $p( @$links )
@@ -1156,12 +1217,8 @@ sub import_all
 		$p->{src} = $old_to_new_id{$p->{src}} or next;
 		$p->{dst} = $old_to_new_id{$p->{dst}} or next;
 		my $joints = $p->{joints} || [];
-		foreach my $joint( @$joints )
-		{
-			#$joint->{x} += $x;
-			#$joint->{y} += $y;
-		}
 		my $u = Fibers::Links->create($p, '', $create_params);
+		push @$select_units_on_viewport, $u->{id};
 	}
 
 	$act eq 'paste' && Fibers->create_history_record(['paste'], $Fibers::History);
@@ -1171,7 +1228,9 @@ sub import_all
 	$act eq 'into_collection' && return undef;
 
 	scalar @warn && debug 'warn', 'pre', @warn;
-	return main_get_all($scheme_id);
+	my $res = main_get_all($scheme_id);
+	$res->{select_units} = $select_units_on_viewport if $act eq 'paste';
+	return $res;
 }
 
 sub show_collection
@@ -1210,23 +1269,31 @@ sub show_collection
 	}];
 }
 
-sub check_xy
-{
-	my($x, $y, $bounds, $ret_undef_if_err) = @_;
-	$bounds ||= $fibers__xy_bounds;
-	my $error = $x < -$bounds->{x} || $x > $bounds->{x} || $y < -$bounds->{y} || $y > $bounds->{y};
-	$error or return( int($x + ($x <=> 0)*0.5), int($y + ($y <=> 0)*0.5) );
-	defined $ret_undef_if_err ? return (undef, undef) : ApiError(L('coordinates_are_out_of_bounds'));
-}
-
 sub frame_create
 {
 	my($scheme_id, $id) = @_;
-	my($x, $y) = check_xy(ses::input_int('x', 'y'));
+	my($x, $y) = ses::input_int('x', 'y');
 	my $type = ses::input('type');
 	my $connectors = ses::input_int('connectors');
+	return _frame_create( $scheme_id, {
+		type => $type, x => $x, y => $y, connectors => $connectors
+	});
+}
 
+sub _frame_create
+{
+	my($scheme_id, $params) = @_;
+	my $type = $params->{type};
+	my $x = $params->{x};
+	my $y = $params->{y};
+	my $connectors = $params->{connectors};
+	my $solder_count = int $params->{solder_count};
+	my $create_params = $params->{create_params} || {};
+
+	($x, $y) = check_xy($x, $y);
 	$type =~ /^(panel|coupler|switch|splitter|onu|container)$/ or ApiError('Type error');
+	$solder_count = 0 if $solder_count < 0;
+	$solder_count = 64 if $solder_count > 64;
 
 	my $inner = {};
 	my $add_data = {};
@@ -1234,6 +1301,7 @@ sub frame_create
 	if( $type eq 'onu' )
 	{
 		$connectors = 1;
+		$solder_count = 0;
 	}
 	 elsif( $type eq 'container' )
 	{
@@ -1244,37 +1312,47 @@ sub frame_create
 		ApiError('Connectors count error');
 	}
 
-	my $start_connectors = $connectors;
 	my $yi = 0;
 	my $xi = 0;
-	my $i = $type eq 'splitter' ? 0 * $connectors++ : 1;
-	my $inner_type = $type eq 'switch'   ? 'port' :
-					 $type eq 'coupler'  ? 'solder' :
-					 $type eq 'splitter' ? 'splitter' :
-										   'connector';
+	my $i = $type eq 'splitter' ? 0 : 1;
+	my $inner_type = $type eq 'switch'	?	'port' :
+					 $type eq 'coupler'	?	'solder' :
+					 $type eq 'splitter'?	'splitter' :
+											'connector';
 	my $set_cols = ses::input_int('cols') || 1;
-	my $connector_with_offset = $set_cols > 1 ? int(($start_connectors+1)/2) + 1 : 100;
-	my $connector_y_distance = $start_connectors > (16 * $set_cols) ? int($inner_units_distance*0.8) : $inner_units_distance;
-	while( $connectors-- )
+	# id of the first connector in the second column
+	my $col2_starts_with_connector_id = $set_cols > 1 ? int(($connectors+1)/2) + 1 : 100;
+	$col2_starts_with_connector_id = 1 if $type eq 'splitter';
+	my $connector_y_distance = $connectors > (16 * $set_cols) ? int($inner_units_distance*0.8) : $inner_units_distance;
+	$yi = int($connector_y_distance * ($connectors-1) / 2) if $type eq 'splitter' && $solder_count;
+	my $x_bias = 0;
+	while( $i <= ($connectors + $solder_count) )
 	{
+		if( $i > $connectors )
+		{
+			$inner_type = 'solder';
+			$x_bias = -$inner_units_distance;
+			$connector_y_distance = $inner_units_distance;
+		}
 		$inner->{$i} = {
 			'i'    => $i,
-			'x'    => $xi + ($type eq 'splitter' && $i ? 2*$inner_units_distance : 0),
+			'x'    => $xi + $x_bias,
 			'y'    => $yi,
-			'name' => $start_connectors < 2 ? '' : $i || '',
+			'name' => $connectors < 2 ? '' : $i || '',
 			'type' => $inner_type,
 		};
-		$yi += $connector_y_distance if $type ne 'splitter' || $i;
+		$yi += $connector_y_distance;
 		$i++;
 		if( $yi > $fibers__inner_xy_bounds->{y} )
 		{
 			$yi = 0;
 			$xi += 2*$inner_units_distance;
 		}
-		 elsif( $i == $connector_with_offset )
+		 elsif( $i == $col2_starts_with_connector_id )
 		{
 			$yi = 0;
 			$xi += $inner_units_distance;
+			$xi += $inner_units_distance if $type eq 'splitter';
 		}
 	}
 
@@ -1294,8 +1372,9 @@ sub frame_create
 		'inner_units' => $inner,
 		'add_data'    => $add_data,
 	};
-	my $u = Fibers::Units->create($data, ['creating_of', 'of_'.$type])->data();
-	return $u;
+	my $u = Fibers::Units->create($data, ['creating_of', 'of_'.$type], $create_params);
+	$params->{return_unit} && return $u;
+	return $u->data();
 }
 
 sub frame_show_img
@@ -1423,7 +1502,7 @@ sub frame_data_save
 	{
 		if( ses::input_int("tag_$i") )
 		{
-			$u->{add_data}{tags} ||= []; 
+			$u->{add_data}{tags} ||= [];
 			push @{$u->{add_data}{tags}}, $i;
 		}
 	}
@@ -1498,7 +1577,7 @@ sub _in_out_container
 				$container->{y} = $y;
 				$container->save('', {no_commit=>1, heap_history=>1});
 				$res->{container} = $container->all_tied_units_data();
-			}            
+			}
 		}
 
 		$u->save([$place_id ? 'moving_into_container' : 'removing_from_container']);
@@ -1664,24 +1743,22 @@ sub frame_add_inner
 	my $type = ses::input('type');
 	my $u = Fibers::Units::Frame->get_by_id($id);
 
-	(
-		( $u->{type} eq 'switch' && $type !~ /^(port)$/ ) ||
-		( $u->{type} ne 'switch' && $type !~ /^(connector|splitter|solder)$/ )
-	)
-	&& ApiError('Invalid type');
+	$u->{type} eq 'switch' && $type !~ /^(port)$/ && ApiError('Invalid type');
+	$u->{type} ne 'switch' && $type !~ /^(connector|splitter|solder)$/ && ApiError('Invalid type');
 
+	my $iu = $u->{inner_units};
 	my $name = 1;
-	foreach my $p( sort{ $a <=> $b} grep{ $_ > 0 } map{ int($_->{name}) } values %{$u->{inner_units}} )
+	foreach my $p( sort{ $a <=> $b } grep{ $_ > 0 } map{ int($_->{name}) } grep{ $_->{type} ne 'solder' }values %$iu )
 	{
 		$name > $p && next;
 		$name++ == $p && next;
 		$name--;
 		last;
 	}
-	my $i = (sort{ $b <=> $a } keys %{$u->{inner_units}})[0] + 1;
-	if( $type eq 'splitter' && !exists $u->{inner_units}{0} )
+	my $i = (sort{ $b <=> $a } keys %$iu)[0] + 1;
+	if( $type eq 'splitter' && !exists $iu->{0} )
 	{
-		$u->{inner_units}{0} = {
+		$iu->{0} = {
 			i    => 0,
 			name => '',
 			x    => $x,
@@ -1690,13 +1767,20 @@ sub frame_add_inner
 		};
 		$x += $inner_units_distance*2;
 	}
-	$u->{inner_units}{$i} = {
+	$iu->{$i} = {
 		i    => $i,
 		name => $name,
 		x    => $x,
 		y    => $y,
 		type => $type,
 	};
+	if( $type eq 'splitter' && $u->inner_count('splitter') != 3 )
+	{
+		foreach my $i( values %$iu )
+		{
+			exists $i->{signal_ratio} && delete $i->{signal_ratio};
+		}
+	}
 	$u->save(['inner_element_adding', $type]);
 	return $u->data();
 }
@@ -1752,13 +1836,27 @@ sub frame_inner_data
 	my $u = Fibers::Units::Frame->get_by_id($id, { without_transaction=>1, maybe_other_scheme=>1 });
 	my $inner_id = ses::input_int('inner_id');
 	exists $u->{inner_units}{$inner_id} or _reload_page();
-	return {
+	my $inner_unit = $u->{inner_units}{$inner_id};
+	my $res = {
 		id => $id,
 		inner_id => $inner_id,
-		name => $u->{inner_units}{$inner_id}{name},
-		description => $u->{inner_units}{$inner_id}{description},
-		remote_id => $u->{inner_units}{$inner_id}{remote_id}.'',
+		name => $inner_unit->{name},
+		description => $inner_unit->{description},
+		remote_id => $inner_unit->{remote_id}.'',
 	};
+
+	{	# connection type && signal ratio (40%/60%)
+		$u->{type} eq 'switch' && last;
+		$inner_unit->{type} ne 'splitter' && last;
+		if( !$inner_id )
+		{
+			$res->{con_type} = $inner_unit->{con_type} || 'cc';
+			last;
+		}
+		$u->inner_count('splitter') == 3 or last;
+		$res->{signal_ratio} = int($inner_unit->{signal_ratio}) || 50;
+	}
+	return $res;
 }
 
 sub frame_inner_data_save
@@ -1767,12 +1865,45 @@ sub frame_inner_data_save
 	my $u = Fibers::Units::Frame->get_by_id($id);
 	my $inner_id = ses::input_int('inner_id');
 	exists $u->{inner_units}{$inner_id} or _reload_page();
-	my $old_remote_id = $u->{inner_units}{$inner_id}{remote_id}.'';
+	my $inner_unit = $u->{inner_units}{$inner_id};
+	my $old_remote_id = $inner_unit->{remote_id}.'';
 	my %fl = %Fibers::Units::fields_lengths;
 	foreach my $field( 'name', 'description', 'remote_id' )
 	{
 		ses::input_exists($field) or next;
-		$u->{inner_units}{$inner_id}{$field} = substr(ses::input($field), 0, $fl{"inner__$field"});
+		$inner_unit->{$field} = substr(ses::input($field), 0, $fl{"inner__$field"});
+	}
+
+	{	# connection type && signal ratio
+		$u->{type} eq 'switch' && last;
+		$inner_unit->{type} ne 'splitter' && last;
+		if( !$inner_id )
+		{
+			my $con_type = ses::input('con_type');
+			if( $con_type =~ /^(ss|sc|cs)$/ )
+			{
+				$inner_unit->{con_type} = $con_type;
+			}
+			 elsif( exists $inner_unit->{con_type} )
+			{	# cc is default value, do not save
+				delete $inner_unit->{con_type};
+			}
+			last;
+		}
+		my @splitter_connectors = grep{ $_->{type} eq 'splitter' } values %{$u->{inner_units}};
+		scalar @splitter_connectors == 3 or last;
+		my $signal_ratio = ses::input_int('signal_ratio');
+		$signal_ratio = 50 if $signal_ratio <=0 || $signal_ratio >= 100;
+		foreach my $iu( @splitter_connectors )
+		{
+			my $iid = int $iu->{i} or next;
+			my $sr = $iid == $inner_id ? $signal_ratio : 100 - $signal_ratio;
+			if( $sr == 50 ) {
+				exists $iu->{signal_ratio} && delete $iu->{signal_ratio};
+			} else {
+				$iu->{signal_ratio} = $sr;
+			}
+		}
 	}
 
 	my $action = ['inner_element_data_changing_of', 'of_'.$u->{type}];
@@ -1793,10 +1924,10 @@ sub frame_inner_data_save
 		if( %p )
 		{
 			push @$Fibers::History, {
-				table   => 'fibers_inner_units',
-				id      => $p{id},
-				back    => { remote_id=>$old_remote_id },
-				forward => { remote_id=>$remote_id },
+				table	=> 'fibers_inner_units',
+				id		=> $p{id},
+				back	=> { remote_id=>$old_remote_id },
+				forward	=> { remote_id=>$remote_id },
 			};
 		}
 		Fibers->create_history_record($action, $Fibers::History) or _db_error();
@@ -2086,20 +2217,25 @@ sub frame_rotate
 
 # --- Cable ---
 
-
 sub cable_create
 {
 	my($scheme_id) = @_;
-	my($xa, $ya) = check_xy(ses::input_int('x', 'y'));
-
+	my($xa, $ya) = ses::input_int('x', 'y');
 	my $fibers_count = ses::input_int('fibers_count');
 	my $multimode = ses::input_int('multimode');
 	my $color_preset_id = ses::input_int('color_preset_id');
+	return _cable_create($scheme_id, $xa, $ya, $fibers_count, $multimode, $color_preset_id, $CABLE_CREATE_WIDTH, 0);
+}
+
+sub _cable_create
+{
+	my($scheme_id, $xa, $ya, $fibers_count, $multimode, $color_preset_id, $cable_width, $cable_height, $create_params) = @_;
+	($xa, $ya) = check_xy($xa, $ya);
 
 	($fibers_count <= 0 || $fibers_count > 100) && ApiError('Fibers count error');
 	($multimode <= 0 || $multimode > 8) && ApiError('Multimode count error');
 
-	my($xb, $yb) = ($multimode > 1 ? $xa+400 : $xa+200, $ya);
+	my($xb, $yb) = ($multimode > 1 ? $xa+2*$cable_width : $xa+$cable_width, $ya + $cable_height);
 	my $offset = int($fiber_tips_distance * (($fibers_count-0.5)/2 - 0.25));
 	my $add_data = {
 		rotate => [0, 0],
@@ -2149,7 +2285,7 @@ sub cable_create
 	my $half_distance = int($fiber_tips_distance/2);
 	while( $multimode )
 	{
-		$u = Fibers::Units->create($data, 'cable_creating');
+		$u = Fibers::Units->create($data, 'cable_creating', $create_params);
 		push @$res, $u->data();
 		$data->{tied} = $u->{tied};
 		$data->{x} += $half_distance;
@@ -2211,7 +2347,7 @@ sub cable_data_save
 	{
 		my $length = ses::input_int('length');
 		$length < 0 && ApiError('length must be a positive number');
-		$u->{length} = $length;
+		$u->{length} = $length if $length <= 10000000;
 	}
 
 	if( ses::input_exists('trunk') )
@@ -2289,15 +2425,36 @@ sub cable_move
 sub cable_cut
 {
 	my($scheme_id, $id) = @_;
-	my($x, $y) = check_xy(ses::input_int('x', 'y'));
+	my($x, $y) = ses::input_int('x', 'y');
 	my $joint_num = ses::input_int('joint_num');
+	return _cable_cut($scheme_id, { id=>$id, x =>$x, y =>$y, joint_num=>$joint_num });
+}
+
+sub _cable_cut
+{
+	my($scheme_id, $params) = @_;
+	my $id = $params->{id};
+	my $x = $params->{x};
+	my $y = $params->{y};
+	my $joint_num = $params->{joint_num};
+	my $gap = $params->{gap};
+	my $create_params = $params->{create_params} || {};
+
+	my($x, $y) = check_xy($x, $y);
 	$joint_num < 1 && return get_all($scheme_id);
+	$gap = 15 if $gap < 15;
+	$gap = 300 if $gap > 300;
 
 	my $u = Fibers::Units::Cable->get_by_id($id);
 	$u->{add_data}{linked_scheme} ne '' && ApiError(L('First remove the link to the other scheme'));
 
+	$u->{tied} && Db->line(
+		"SELECT id FROM fibers_units WHERE id<>? AND tied=? AND removed=0",
+		$id, $u->{tied}
+	) && ApiError('Unable to cut a multimode cable');
+
 	my $data = $u->data();
-	$y -= int($fiber_tips_distance * scalar(keys %{$data->{inner_units}})/2);
+	$y -= int($fiber_tips_distance * scalar(keys %{$data->{inner_units}})/2) if !$params->{cable_end_joint_on_top};
 
 	$u->{x0} = $x;
 	$u->{y0} = $y;
@@ -2307,13 +2464,15 @@ sub cable_cut
 	{
 		push @{$u->{joints}}, shift @{$data->{joints}};
 	}
+	$u->{add_data}{collapsed_coord}[1] = 0 if $params->{cable_end_joint_on_top};
 
-	$data->{x} = $x + 15;
+	$data->{x} = $x + $gap;
 	$data->{y} = $y;
 	$data->{add_data}{rotate}[0] = 0;
 	$data->{tied} = 0;
 	$data->{nodeny_obj_id} = 0;
 	$data->{length} = 0;
+	$data->{add_data}{collapsed_coord}[0] = 0 if $params->{cable_end_joint_on_top};
 
 	my $new_u = Fibers::Units->create($data, 'cable_creating', {
 	  no_commit=>1, heap_history=>1, without_transaction=>1
@@ -2361,12 +2520,13 @@ sub cable_cut
 		$ok = 1;
 	}
 
-	if( !$ok || !Db->commit )
+	if( !$create_params->{no_commit} && (!$ok || !Db->commit) )
 	{
 		Db->rollback;
 		_db_error();
 	}
 
+	$create_params->{return_cables} && return($u, $new_u);
 	return get_all($scheme_id);
 }
 
@@ -2671,7 +2831,7 @@ sub cable_link_with_scheme_save
 			$linked_cable_id, { scheme_id=>$linked_scheme_id, without_transaction=>1, no_api_error=>1 }
 		);
 		$linked_cable or last;  # no unit or unit is not a cable
-		$linked_cable->{add_data}{linked_scheme} eq $scheme_gid.':'.$id or last;  # backward link is empty or incorrect 
+		$linked_cable->{add_data}{linked_scheme} eq $scheme_gid.':'.$id or last;  # backward link is empty or incorrect
 
 		$linked_cable->{add_data}{linked_scheme} = '';
 		$linked_cable->save('', { no_commit=>1, no_history=>1 });
@@ -2745,7 +2905,7 @@ sub cable_find_break
 	foreach my $i( 0..1 )
 	{
 		my $place_id = int $u->{add_data}{places}[$i];
-		$place_id > 0 or ApiError($err_container); 
+		$place_id > 0 or ApiError($err_container);
 		my $container = Fibers::Units::Frame->get_by_id($place_id, {without_transaction=>1});
 		$container->{type} eq 'container' or ApiError('Internal error');
 		$container->{removed} && ApiError($err_container);
@@ -2805,17 +2965,159 @@ sub cable_find_break
 	return $res;
 }
 
+sub cable_insert_splitter
+{
+	my($scheme_id, $id) = @_;
+	my $res = Fibers::Units::Cable->get_by_id($id, {without_transaction=>1})->data();
+	$res = {
+		id => $res->{id},
+		inner_units => $res->{inner_units},
+		joint_num => ses::input_int('joint_num'),
+		x => ses::input_int('x'),
+		y => ses::input_int('y'),
+	};
+	return $res;
+}
+
+sub cable_insert_splitter_now
+{
+	my $GAP = 80;
+
+	my($scheme_id, $id) = @_;
+	my($x, $y) = ses::input_int('x', 'y');
+	my $joint_num = ses::input_int('joint_num');
+	my $connectors = ses::input_int('connectors');
+	my $fiber_to_splitter = ses::input_int('splitter');
+
+	my $create_params = { no_commit=>1, heap_history=>1, without_transaction=>1 };
+
+	my($cable1, $cable2) = _cable_cut( $scheme_id, {
+		id => $id,
+		x => $x,
+		y => $y,
+		joint_num => $joint_num,
+		gap => $GAP,
+		cable_end_joint_on_top => 1,
+		create_params => { no_commit=>1, return_cables=>1 },
+	});
+
+	my $fiber_to_splitter_ok = 0;
+	my $solder_count = 0;
+	my $solder_fiber = {};
+	my @ordered_fibers_with_solder = ();
+	my @ordered_fibers_without_solder = ();
+	foreach my $fiber_unit( sort{ $a->{offset}[1] <=> $b->{offset}[1] } values %{$cable1->{inner_units}})
+	{
+		my $fiber_id = $fiber_unit->{i};
+		if( $fiber_to_splitter == $fiber_id )
+		{
+			$fiber_to_splitter_ok = 1;
+		}
+		 elsif( ses::input_int('soldering'.$fiber_id) )
+		{
+			$solder_fiber->{$fiber_id} = 1;
+			$solder_count++;
+			push @ordered_fibers_with_solder, $fiber_id;
+		}
+		 else
+		{
+			push @ordered_fibers_without_solder, $fiber_id;
+		}
+	}
+	$fiber_to_splitter_ok or ApiError(L('Select the fiber to link to a splitter'));
+
+	my $splitter = _frame_create($scheme_id, {
+		type => 'splitter',
+		x => $x + 10,
+		y => $y - $connectors * $fiber_tips_distance * ($connectors > 16 ? 0.8 : 1),
+		connectors => $connectors,
+		solder_count => scalar(keys %{$cable1->{inner_units}}) - 1,
+		create_params => $create_params,
+		return_unit => 1,
+	});
+
+	my $ratio = ses::input('ratio');
+	if( $connectors == 2 && $ratio ne '50/50' && $ratio =~ m|^(\d+)/(\d+)$| && ($1 + $2) == 100 )
+	{
+		$splitter->{inner_units}{1}{signal_ratio} = $2;
+		$splitter->{inner_units}{2}{signal_ratio} = $1;
+		$splitter->save('', {no_history=>1, no_commit=>1});
+	}
+
+	my @sorted_by_offset_solder_ids =
+		map{ $_->{i} }
+		sort{ $a->{y} <=> $b->{y} }
+		grep{ $_->{type} eq 'solder' }
+		values %{$splitter->{inner_units}};
+
+	$cable1->{inner_units}{$fiber_to_splitter}{offset}[1] = -$fiber_tips_distance;
+	$cable2->{inner_units}{$fiber_to_splitter}{offset}[0] = -$fiber_tips_distance;
+
+	my $y_first_solder = scalar @sorted_by_offset_solder_ids ? $splitter->{inner_units}{$sorted_by_offset_solder_ids[0]}->{y} : 0;
+	my $y_fiber_tip = 0;
+
+	my @fibers_order = (@ordered_fibers_with_solder, @ordered_fibers_without_solder);
+	foreach my $fiber_id( @fibers_order )
+	{
+		$cable1->{inner_units}{$fiber_id}{'offset'}[1] = $y_fiber_tip;
+		$cable2->{inner_units}{$fiber_id}{'offset'}[0] = $y_fiber_tip;
+		$y_fiber_tip += $fiber_tips_distance;
+	}
+	$cable1->save('', {no_history=>1, no_commit=>1});
+	$cable2->save('', {no_history=>1, no_commit=>1});
+
+	my $data = [
+		[ $cable1->{id}, $fiber_to_splitter, 1 ],
+		[ $splitter->{id}, 0, 0 ],
+	];
+	_link_create($scheme_id, $data, $create_params);
+
+	foreach my $fiber_num( @fibers_order )
+	{
+		$solder_fiber->{$fiber_num} or next;
+		my $solder_id = shift @sorted_by_offset_solder_ids;
+		$splitter->{inner_units}{$solder_id} or next;
+		$data = [
+			[ $cable1->{id}, $fiber_num, 1 ],
+			[ $splitter->{id}, $solder_id, 0 ],
+		];
+		_link_create($scheme_id, $data, $create_params);
+		$data = [
+			[ $cable2->{id}, $fiber_num, 0 ],
+			[ $splitter->{id}, $solder_id, 0 ],
+		];
+		_link_create($scheme_id, $data, $create_params);
+	}
+
+	Fibers->create_history_record(['creating_of', 'of_splitter'], $Fibers::History) or _db_error();
+	if( !Db->commit )
+	{
+		Db->rollback;
+		_db_error();
+	}
+
+	my $res = get_all($scheme_id);
+	#$res->{select_units} = $select_units_on_viewport;
+	return $res;
+} #efend
+
 # --- Links ---
 
 sub link_create
 {
 	my($scheme_id, $id) = @_;
-
-	my @data = (
+	my $data = [
 		[ ses::input_int('src'), ses::input_int('src_inner'), ses::input_int('src_side') ],
 		[ ses::input_int('dst'), ses::input_int('dst_inner'), ses::input_int('dst_side') ],
-	);
+	];
+	return _link_create($scheme_id, $data);
+}
 
+sub _link_create
+{
+	my($scheme_id, $data, $create_params) = @_;
+
+	my @data = @$data;
 	my @units = (
 		Fibers::Units->get_by_id($data[0][0], {without_transaction=>1}),
 		Fibers::Units->get_by_id($data[1][0], {without_transaction=>1}),
@@ -2875,7 +3177,7 @@ sub link_create
 		joints => [],
 	};
 
-	my $link = Fibers::Links->create($link_data, 'link_creating');
+	my $link = Fibers::Links->create($link_data, 'link_creating', $create_params);
 
 	return $link->data();
 }
@@ -3069,7 +3371,7 @@ sub pon_path
 	my $inner_id = ses::input_int('inner_id');
 	exists $u->{inner_units}{$inner_id} or _reload_page();
 	my $gid = $Scheme_data->{gid};
-	return _path($scheme_id, 1, "$gid:$id:$inner_id", '');
+	return _path($scheme_id, 1, "$id:$inner_id", '');
 }
 
 sub path
@@ -3082,6 +3384,43 @@ sub path
 
 sub _path
 {
+	my $loss_settings = {
+		'connector' => 0.5,
+		'solder'=> 0.05,
+		'cable' => 0.36,
+		'coupler'=> 0.05,
+		'panel' => 0.5,
+		'FBT' => {
+			1 => 24,
+			2 => 20,
+			3 => 17,
+			4 => 15,
+			5 => 13.7,
+			10 => 10.8,
+			15 => 8.16,
+			20 => 7.11,
+			25 => 6.29,
+			30 => 5.39,
+			35 => 4.56,
+			40 => 4.01,
+			45 => 3.63,
+			50 => 3.17,
+			55 => 2.71,
+			60 => 2.34,
+			65 => 1.93,
+			70 => 1.56,
+			75 => 1.42,
+			80 => 1.06,
+			85 => 0.76,
+			90 => 0.49,
+			95 => 0.32,
+			96 => 0.3,
+			97 => 0.28,
+			98 => 0.27,
+			99 => 0.26,
+		}
+	};
+
 	my($scheme_id, $multipath, $start_point, $end_point) = @_;
 
 	my $start_unit_id = int $start_point;
@@ -3145,7 +3484,7 @@ sub _path
 			next;
 		}
 
-		if( $multipath && $u->{type} eq 'onu' )
+		if( $multipath )
 		{
 			foreach my $port( keys %{$u->{inner_units}} ) { push @onu, "$id:$port" };
 		}
@@ -3161,10 +3500,11 @@ sub _path
 				dst => $id,
 				src_inner => 0,
 				dst_inner => $i->{i},
+				splitter => 1,
 			};
 		}
 
-		if( 1 )
+		if( !$multipath )
 		{
 			foreach my $i( @iu )
 			{
@@ -3196,7 +3536,8 @@ sub _path
 	}
 
 	eval 'use Graph';
-	my $g = Graph->new( undirected=>1 );
+	my %graph_params = $multipath ? ( directed=>1 ) : ( undirected=>1 );
+	my $g = Graph->new( %graph_params );
 
 	my %links = ();
 	foreach my $l( @links )
@@ -3213,7 +3554,13 @@ sub _path
 		}
 		$links{"$src,$dst"} = $l;
 		$g->add_weighted_edge($src, $dst, int($l->{weight}));
+		if( $multipath && !$l->{splitter} )
+		{
+			$links{"$dst,$src"} = $l;
+			$g->add_weighted_edge($dst, $src, int($l->{weight}));
+		}
 	}
+	# debug 'pre', 'links:', \%links;
 
 	my %units = map{ $_->{id} => $_ } @units;
 	foreach my $u ( @{$res->{units}} )
@@ -3226,16 +3573,21 @@ sub _path
 	$start_point = int $start_point if $connected_together{int $start_point};
 	$end_point   = int $end_point   if $connected_together{int $end_point};
 
-	my $length = 0;
+	my $total_length = 0;
 	my @length = ();
 	my @path = ();
+	my $total_loss = 0;
+	my @loss_chain = ();
 
 	my @endpoints = $multipath ? @onu : ($end_point);
 	foreach my $end_point( @endpoints )
 	{
 		@path = (@path, $g->SP_Dijkstra($start_point, $end_point));
 	}
-	debug \@path;
+	debug 'path:', \@path;
+
+	my $pad = '&nbsp;&nbsp;&nbsp;';
+	my $last_loss_signal_object = 0;
 	my $last_p = undef;
 	foreach my $p( @path )
 	{
@@ -3265,27 +3617,96 @@ sub _path
 		#    $path_bounds->{y_max} = $box->{y_max} if $box->{y_max} > $path_bounds->{y_max};
 		#}
 
-		delete $units{$id}{mute};
+		my $unit = $units{$id};
+		delete $unit->{mute};
 		if( $id eq $p )
 		{
-			map{ delete $_->{mute} } values %{$units{$id}{inner_units}};
+			map{ delete $_->{mute} } values %{$unit->{inner_units}};
 			next;
 		}
-		if( exists $units{$id}{length} )
+		if( exists $unit->{length} )
 		{
-			my $lg = $units{$id}{length};
-			push @length, $units{$id}{length} || '??';
-			$length += $lg;
+			my $len = $unit->{length};
+			push @length, $len || '??';
+			$total_length += $len;
 		}
+
 		my(undef, $iid) = split /:/, $p;
+
+		my $loss = 0;
+		if( $unit->{cls} eq 'cable' )
+		{
+			my $len = $unit->{length};
+			my $km = $len > 0 ? sprintf('%.3f', $len / 1000) : '?';
+			my $k = $loss_settings->{cable};
+			$loss = $len > 0 ? sprintf('%.2f', $km * $k) : '?';
+			my $msg = _("[] $km [] × $k = $loss", L('cable'), L('km'));
+			$msg = _('[span disabled]', $msg) if $len <= 0;
+			push @loss_chain, $msg;
+		}
+		 else
+		{
+
+			$last_loss_signal_object ne $unit->{id} && push @loss_chain, L($unit->{type}).($unit->{name} ? ' '.$unit->{name} : '');
+			$last_loss_signal_object = $unit->{id};
+			{
+				my $inner_unit = $unit->{inner_units}{$iid};
+				if( $inner_unit->{type} eq 'solder' )
+				{
+					$loss  = $loss_settings->{solder};
+					push @loss_chain, $pad.L('soldering').' = '.$loss;
+					last;
+				}
+				if( $inner_unit->{type} eq 'connector' )
+				{
+					$loss  = $loss_settings->{connector};
+					push @loss_chain, $pad.L('connector').' = '.$loss;
+					last;
+				}
+
+				if( $inner_unit->{type} eq 'splitter' )
+				{
+					if( !$iid )
+					{
+						my $con_type = $inner_unit->{con_type} || 'cc';
+						my($c1, $c2) = split //, $con_type;
+						my $loss1 = $loss_settings->{$c1 eq 'c' ? 'connector' : 'solder'};
+						my $loss2 = $loss_settings->{$c2 eq 'c' ? 'connector' : 'solder'};
+						push @loss_chain, $pad.L('input' ).' '.($c1 eq 'c' ? L('connector') : L('soldering')).' = '.$loss1;
+						push @loss_chain, $pad.L('output').' '.($c2 eq 'c' ? L('connector') : L('soldering')).' = '.$loss2;
+						$loss = $loss1 + $loss2;
+						last;
+					}
+
+					my $splitter_connectors = inner_count($unit, 'splitter') - 1;
+					my $signal_ratio = $inner_unit->{signal_ratio} || 50;
+					if( $splitter_connectors == 2 && $signal_ratio != 50 )
+					{
+						my $sr = exists $loss_settings->{FBT}{$signal_ratio} ? $signal_ratio : int(($signal_ratio+2) / 5) * 5;
+						$loss = $loss_settings->{FBT}{$sr};
+						push @loss_chain, $pad.$signal_ratio.'% = '.$loss;
+					}
+					 else
+					{
+						$loss = sprintf('%.2f', 4.68 * log($splitter_connectors>32 ? $splitter_connectors**(1 + $splitter_connectors*0.0008) : $splitter_connectors) + 0.97);
+						push @loss_chain, $pad.'split 1x'.$splitter_connectors.' = '.$loss;
+					}
+				}
+			}
+		}
+
+		$total_loss += $loss;
+
 		delete $units{$id}{inner_units}{$iid}{mute} if exists $units{$id}{inner_units}{$iid};
 		$units{$id}{in_path} = 1;
 	}
+	push @loss_chain, '', L('Total attenuation: []', $total_loss);
 	$res->{path} = 1;
 	if( !$multipath )
 	{
-		$res->{show_message} = L('length =', $length);
+		$res->{show_message} = L('length =', $total_length);
 		$res->{show_message} .= ': '.join(' + ', @length) if scalar @length;
+		$res->{show_message} .= '<br><br>'.join('<br>', @loss_chain) if scalar @loss_chain;
 	}
 	return $res;
 }
@@ -3448,6 +3869,9 @@ sub scheme_data
 	{
 		$p{settings}{tags}{$i} .= '';
 	}
+	$p{settings}{min_signal_level} ||= $MIN_SIGNAL_LEVEL;
+	$p{settings}{max_signal_level} ||= $MAX_SIGNAL_LEVEL;
+	$p{settings}{signal_levels} ||= [];
 	return \%p;
 }
 
@@ -3472,6 +3896,13 @@ sub scheme_data_save
 		utf8::decode($tag);
 		utf8::upgrade($tag);
 		$tags->{$i} = $tag if length($tag);
+	}
+	{
+		my $levels = v::trim(ses::input('signal_levels')) or last;
+		my @levels = split / *, */, $levels;
+		$levels = _validate_signal_levels(\@levels);
+		scalar @levels == 4 or last;
+		$settings->{signal_levels} = $levels if ref $levels;
 	}
 	$Db->line(
 		'UPDATE fibers_schemes SET name=?, '.
@@ -3561,15 +3992,15 @@ sub check_history
 {
 	my($scheme_id) = @_;
 	my $db = Db->sql('SELECT id FROM fibers_units WHERE removed=0 AND scheme_id=?', $scheme_id);
-    my %units = ();
-    while( my %p = $db->line )
-    {
-        $units{$p{id}} = 1;
-    }
-    my $db = Db->sql('SELECT * FROM fibers_history WHERE scheme_id=?', $scheme_id);
-    while( my %p = $db->line )
-    {
-      	utf8::decode($p{data});
+	my %units = ();
+	while( my %p = $db->line )
+	{
+		$units{$p{id}} = 1;
+	}
+	my $db = Db->sql('SELECT * FROM fibers_history WHERE scheme_id=?', $scheme_id);
+	while( my %p = $db->line )
+	{
+		utf8::decode($p{data});
 		my $data = from_json($p{data});
 		$data = [$data] if ref $data ne 'ARRAY';
 		foreach my $i( @$data )
@@ -3577,13 +4008,14 @@ sub check_history
 			my $id = $i->{id} or next;
 			# delete $units{$id};
 		}
-    }
-    debug [keys %units];
-    return get_all($scheme_id);
+	}
+	debug [keys %units];
+	return get_all($scheme_id);
 }
 
-# -----------------
+#<HOOK>main_end
 
+# -----------------
 
 
 package Fibers;
@@ -3662,66 +4094,66 @@ sub into_history
 
 sub save
 {
-    # $params = {
-    #    no_commit    => не коммитить sql
-    #    no_history   => не создавать записи в истории
-    #    heap_history => не записывать историю, а накапливать
-    # }
-    my($u, $action, $params) = @_;
-    $params ||= {};
+	# $params = {
+	#    no_commit    => do not commit sql
+	#    no_history   => do not create history records
+	#    heap_history => save history in $Fibers::History
+	# }
+	my($u, $action, $params) = @_;
+	$params ||= {};
 
-    my $sqls = $u->prepare_save_sqls();
-    my $db_table = $u->db_table();
+	my $sqls = $u->prepare_save_sqls();
+	my $db_table = $u->db_table();
 
-    my($ok);
-    {
-        foreach my $sql( @$sqls )
-        {
-            Db->do(@$sql);
-            Db->ok or last;
-        }
-        Db->ok or last;
+	my($ok);
+	{
+		foreach my $sql( @$sqls )
+		{
+			Db->do(@$sql);
+			Db->ok or last;
+		}
+		Db->ok or last;
 
-        if( !$params->{no_history} )
-        {
-            my $old = $u->{old};
-            my $back = {};
-            my $forward = {};
-            foreach my $o( keys %$old )
-            {
-                my $field_name = $u->full_field_name($o);
-                $back->{$field_name} = $old->{$o};
-                $forward->{$field_name} = $u->{$o};
-            }
-            if( $params->{no_need_dumps_in_history} )
-            {
-                delete $back->{inner_units};
-                delete $back->{add_data};
-                delete $forward->{inner_units};
-                delete $forward->{add_data};
-            }
-            $action ||= ['[] []', $u->{type}, 'changing'];
-            if( $params->{heap_history} )
-            {
-                push @$Fibers::History, {
-                    table   => $u->db_table(),
-                    id      => $u->{id},
-                    back    => $back,
-                    forward => $forward,
-                };
-            }
-              else
-            {
-                $u->into_history($action, $back, $forward) or last;
-            }
-        }
-        $ok = 1;
-    }
-    if( !$ok || (!$params->{no_commit} && !Db->commit) )
-    {
-        Db->rollback;
-        $u->api_db_error();
-    }
+		if( !$params->{no_history} )
+		{
+			my $old = $u->{old};
+			my $back = {};
+			my $forward = {};
+			foreach my $o( keys %$old )
+			{
+				my $field_name = $u->full_field_name($o);
+				$back->{$field_name} = $old->{$o};
+				$forward->{$field_name} = $u->{$o};
+			}
+			if( $params->{no_need_dumps_in_history} )
+			{
+				delete $back->{inner_units};
+				delete $back->{add_data};
+				delete $forward->{inner_units};
+				delete $forward->{add_data};
+			}
+			$action ||= ['[] []', $u->{type}, 'changing'];
+			if( $params->{heap_history} )
+			{
+				push @$Fibers::History, {
+					table   => $u->db_table(),
+					id      => $u->{id},
+					back    => $back,
+					forward => $forward,
+				};
+			}
+			  else
+			{
+				$u->into_history($action, $back, $forward) or last;
+			}
+		}
+		$ok = 1;
+	}
+	if( !$ok || (!$params->{no_commit} && !Db->commit) )
+	{
+		Db->rollback;
+		$u->api_db_error();
+	}
 }
 
 sub _data
@@ -3866,7 +4298,7 @@ sub create
 			}
 			 else
 			{
-			    $u->into_history($action, $back, $forward) or last;
+				$u->into_history($action, $back, $forward) or last;
 			}
 		}
 
@@ -3946,8 +4378,8 @@ sub inner_remove
 
 	if( keys %$iu < 2 )
 	{
-	    $u->delete();
-	    return 2;
+		$u->delete();
+		return 2;
 	}
 
 	my $id = $u->{id};
@@ -3956,7 +4388,7 @@ sub inner_remove
 	my $db = Db->sql("SELECT id FROM fibers_links $where", $id, $inner_id, $id, $inner_id);
 	while( my %p = $db->line )
 	{
-	    push @$history, { table=>'fibers_links', id=>$p{id}, back=>{removed=>0}, forward=>{removed=>1} };
+		push @$history, { table=>'fibers_links', id=>$p{id}, back=>{removed=>0}, forward=>{removed=>1} };
 	}
 
 	if( scalar @$history )
@@ -4037,6 +4469,11 @@ sub all_tied_units_data
 	return $res;
 }
 
+sub inner_count
+{
+	my($u, $inner_type) = @_;
+	return main::inner_count($u, $inner_type);
+}
 
 
 package Fibers::Units::Frame;
@@ -4133,7 +4570,8 @@ sub get_by_id
 	my %p = Db->line( $sql, @sql_params );
 	%p or $cls->api_db_error();
 
-	$params->{maybe_other_scheme} && !$p{shared} && $p{uid} != $Uid && main::ApiError(L('Access denied'));
+	$params->{maybe_other_scheme} && !$p{shared} && $p{uid} != $Uid && !$User->{superadmin}
+		&& main::ApiError(L('Access denied'));
 	$params->{check_removed} && $p{removed} && main::ApiError(L('Object is deleted'));
 
 	return $cls->new(%p);
@@ -4147,27 +4585,27 @@ sub prepare_save_sqls
 }
 
 =cut
-+-------------+------------------+------+-----+---------+----------------+
-| Field       | Type             | Null | Key | Default | Extra          |
-+-------------+------------------+------+-----+---------+----------------+
-| id          | int(11) unsigned | NO   | PRI | NULL    | auto_increment |
-| scheme_id   | int(11) unsigned | NO   | MUL | NULL    |                |
-| cls         | varchar(32)      | NO   |     |         |                |
-| type        | varchar(32)      | NO   | MUL |         |                |
-| name        | varchar(64)      | NO   |     |         |                |
-| description | varchar(128)     | NO   |     |         |                |
-| place_id    | int(11) unsigned | NO   |     | 0       |                |
-| tied        | int(11) unsigned | NO   |     | 0       |                |
-| grp         | int(11) unsigned | NO   |     | 0       |                |
-| x           | int(11)          | NO   |     | 0       |                |
-| y           | int(11)          | NO   |     | 0       |                |
-| x0          | int(11)          | NO   |     | 0       |                |
-| y0          | int(11)          | NO   |     | 0       |                |
-| inner_units | text             | NO   |     | NULL    |                |
-| add_data    | text             | NO   |     | NULL    |                |
-| img         | varchar(5)       | NO   |     |         |                |
-| removed     | tinyint(4)       | NO   |     | 0       |                |
-+-------------+------------------+------+-----+---------+----------------+
++-------------+------------------+------+-----+---------+
+| Field       | Type             | Null | Key | Default |
++-------------+------------------+------+-----+---------+
+| id          | int(11) unsigned | NO   | PRI | NULL    |
+| scheme_id   | int(11) unsigned | NO   | MUL | NULL    |
+| cls         | varchar(32)      | NO   |     |         |
+| type        | varchar(32)      | NO   | MUL |         |
+| name        | varchar(64)      | NO   |     |         |
+| description | varchar(128)     | NO   |     |         |
+| place_id    | int(11) unsigned | NO   |     | 0       |
+| tied        | int(11) unsigned | NO   |     | 0       |
+| grp         | int(11) unsigned | NO   |     | 0       |
+| x           | int(11)          | NO   |     | 0       |
+| y           | int(11)          | NO   |     | 0       |
+| x0          | int(11)          | NO   |     | 0       |
+| y0          | int(11)          | NO   |     | 0       |
+| inner_units | text             | NO   |     | NULL    |
+| add_data    | text             | NO   |     | NULL    |
+| img         | varchar(5)       | NO   |     |         |
+| removed     | tinyint(4)       | NO   |     | 0       |
++-------------+------------------+------+-----+---------+
 =cut
 
 sub check_data
@@ -4193,7 +4631,7 @@ sub check_data
 	$u->{lat} = $d->{lat} + 0;
 	$u->{lng} = $d->{lng} + 0;
 	$u->{lat} = $u->{lng} = 0 if abs($u->{lat}) > 90 || abs($u->{lng}) > 90;
-	$u->{inner_units} = {};    
+	$u->{inner_units} = {};
 	my $add_data = $u->{add_data} = {};
 
 	$add_data->{layers} = exists $d->{add_data}{layers} ? $d->{add_data}{layers} : $d->{add_data}{subtype} ? 'infrastructure' : '';
@@ -4228,6 +4666,31 @@ sub check_data
 			type => $type,
 		};
 		$u->{inner_units}{$id}{remote_id} = substr($iue->{remote_id}.'', 0, $fl{inner__remote_id}) if exists $iue->{remote_id};
+	}
+
+	{
+		$u->{type} eq 'switch' && last;
+		my @splitter_connectors = grep{ $_->{type} eq 'splitter' } grep{ $_->{i} } values %$iu;
+		scalar @splitter_connectors or last;
+
+		if( !exists $u->{inner_units}{0} )
+		{
+			$u->{inner_units}{0} = { i=>0, name=>'', type=>'splitter', 'x'=>0, 'y'=>0 };
+		}
+
+		if( $iu->{0}{con_type}.'' =~ /^(ss|sc|cs)$/ )
+		{
+			$u->{inner_units}{0}{con_type} = $iu->{0}{con_type};
+		}
+
+		scalar @splitter_connectors == 2 or last;
+		my $signal_ratio1 = int $splitter_connectors[0]->{signal_ratio};
+		my $signal_ratio2 = int $splitter_connectors[1]->{signal_ratio};
+		($signal_ratio1 > 0 && $signal_ratio1 < 100) or last;
+		($signal_ratio2 > 0 && $signal_ratio2 < 100) or last;
+		($signal_ratio1 + $signal_ratio2 == 100) or last;
+		$u->{inner_units}{$splitter_connectors[0]->{i}}{signal_ratio} = $signal_ratio1;
+		$u->{inner_units}{$splitter_connectors[1]->{i}}{signal_ratio} = $signal_ratio2;
 	}
 
 	return $u;
@@ -4429,7 +4892,7 @@ sub check_data
 	{
 		my $i = { x => int($j->{x}), y => int($j->{y}) };
 		$i->{place_id} = int($j->{place_id}) if int($j->{place_id}) > 0;
-		$i->{subtype} = $j->{subtype} if $j->{subtype} eq 'only_map'; 
+		$i->{subtype} = $j->{subtype} if $j->{subtype} eq 'only_map';
 		push @$joints, $i;
 	}
 	$d->{joints} = $joints;
@@ -4643,7 +5106,7 @@ sub create
 		}
 		 else
 		{
-		    $u->into_history($action, $back, $forward) or $cls->api_db_error();
+			$u->into_history($action, $back, $forward) or $cls->api_db_error();
 		}
 	}
 
@@ -4697,21 +5160,21 @@ sub joint_change_position
 }
 
 =cut
-+-----------+---------------------+------+-----+---------+----------------+
-| Field     | Type                | Null | Key | Default | Extra          |
-+-----------+---------------------+------+-----+---------+----------------+
-| id        | int(11) unsigned    | NO   | PRI | NULL    | auto_increment |
-| scheme_id | int(11) unsigned    | NO   | MUL | NULL    |                |
-| src       | int(11) unsigned    | NO   | MUL | NULL    |                |
-| src_inner | int(11) unsigned    | NO   |     | NULL    |                |
-| src_side  | tinyint(3) unsigned | NO   |     | 0       |                |
-| dst       | int(11) unsigned    | NO   |     | NULL    |                |
-| dst_inner | int(11) unsigned    | NO   |     | NULL    |                |
-| dst_side  | tinyint(3) unsigned | NO   |     | 0       |                |
-| comment   | varchar(64)         | NO   |     |         |                |
-| removed   | tinyint(4)          | NO   |     | 0       |                |
-| tied      | int(10) unsigned    | NO   |     | 0       |                |
-+-----------+---------------------+------+-----+---------+----------------+
++-----------+---------------------+------+-----+---------+
+| Field     | Type                | Null | Key | Default |
++-----------+---------------------+------+-----+---------+
+| id        | int(11) unsigned    | NO   | PRI | NULL    |
+| scheme_id | int(11) unsigned    | NO   | MUL | NULL    |
+| src       | int(11) unsigned    | NO   | MUL | NULL    |
+| src_inner | int(11) unsigned    | NO   |     | NULL    |
+| src_side  | tinyint(3) unsigned | NO   |     | 0       |
+| dst       | int(11) unsigned    | NO   |     | NULL    |
+| dst_inner | int(11) unsigned    | NO   |     | NULL    |
+| dst_side  | tinyint(3) unsigned | NO   |     | 0       |
+| comment   | varchar(64)         | NO   |     |         |
+| removed   | tinyint(4)          | NO   |     | 0       |
+| tied      | int(10) unsigned    | NO   |     | 0       |
++-----------+---------------------+------+-----+---------+
 =cut
 
 sub check_data
@@ -4759,5 +5222,7 @@ sub data
 	my($u) = @_;
 	return Fibers::_data($u);
 }
+
+#<HOOK>end
 
 1;

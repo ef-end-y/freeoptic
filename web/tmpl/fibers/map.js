@@ -2,7 +2,7 @@ fibers.map_state = {
   zoom: 16,
   show_cable_length: false,
   objects: {
-      merker: null,
+      marker: null,
       markers: [],
       line_markers: [],
       lines: []
@@ -33,7 +33,7 @@ fibers.correct_viewport = function()
       }
       object.marker.setLabel(label);
   }
-}
+};
 
 fibers.map_create = function(message)
 {
@@ -63,7 +63,7 @@ fibers.map_create = function(message)
   {
       if( fibers.map_state.zoom != fibers.map.getZoom() ) fibers.correct_viewport();
   });
-}
+};
 
 
 fibers.map_unit_position = function(id, lat, lng)
@@ -92,7 +92,7 @@ fibers.map_unit_position = function(id, lat, lng)
           });
       });
   }
-}
+};
 
 
 fibers.map_center = function()
@@ -111,7 +111,7 @@ fibers.map_center = function()
       fibers.map_options.center = { lat: lat, lng: lng };
       fibers.set_map_view(false);
   });
-}
+};
 
 
 fibers.map_get_all_now = function(message)
@@ -189,7 +189,7 @@ fibers._map_cables = function(units, places, polylines)
   }
 
   fibers.correct_viewport();
-}
+};
 
 
 fibers.map_all_callback = function(data)
@@ -323,7 +323,7 @@ fibers.map_all_callback = function(data)
       fibers.map_state.objects.marker = new google.maps.Marker({position: position, map: map});
       map.setCenter(position);
   }
-}
+};
 
 fibers.map_unit_position_callback = function(data)
 {
@@ -340,5 +340,5 @@ fibers.map_unit_position_callback = function(data)
   }
   fibers.map_create();
   fibers.map_all_callback(data.scheme);
-}
+};
 

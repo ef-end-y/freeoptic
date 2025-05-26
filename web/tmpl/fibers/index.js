@@ -38,7 +38,7 @@ fibers.set_pan_area_box = function(zoom)
 {
     // Calulate the visible scheme part size. Make it bigger than the screen size
     // If we pan the scheme a short distance, we can see it without loading
-    const k = fibers.simplified_scheme ? 3 : zoom * fibers.settings.area_border_k / fibers.settings.change_scheme_detailization_zoom;
+    const k = fibers.simplified_scheme ? 3 : zoom * fibers.settings.area_border_k / fibers.settings.change_scheme_detalization_zoom;
     const vp = fibers.cy.viewport().extent();
     const border_w = vp.w * k;
     const border_h = vp.h * k;
@@ -90,8 +90,9 @@ if( Center_unit_id )
 if( fibers.scheme_gid )
 {
     cy.panzoom({
-        zoomFactor: 0.15,
-        sliderHandleIcon: ''
+        zoomFactor: 0.1,
+        sliderHandleIcon: '',
+        zoomOnly: true
     });
 }
 

@@ -11,12 +11,7 @@ fibers.menu_actions = {
 	},
 	'center-pan' : function(params) {
 		fibers.cy.fit();
-		/* 
-		let z = fibers.cy.zoom();
-		z = 1;
-		fibers.cy.pan({x: fibers.cy.width()/2 - params.x*z, y: fibers.cy.height()/2 - params.y*z});
-		fibers.cy.zoom(1);
-		*/
+		if( fibers.cy.zoom() > 1 ) fibers.cy.fit(fibers.cy.height()/4);
 	},
 	'show_all': function(params) {
 		let url = new URL(document.location);
@@ -89,17 +84,20 @@ fibers.menu_actions = {
 		let mode = fibers.tx_rx_mode;
 		let label;
 		if( mode === '' ) {
-			mode = 'TX';
-			label = [$('<span>', {class: 'error', text: 'TX'}), '/RX'];
-		} else if( mode === 'TX' ) {
 			mode = 'RX';
-			label = ['TX/', $('<span>', {class: 'error', text: 'RX'})];
+			label = [$('<span>', {class: 'error', text: 'RX'}), '/TX'];
 		} else if( mode === 'RX' ) {
-			mode = 'DESCR';
+			mode = 'TX';
+			label = ['RX/', $('<span>', {class: 'error', text: 'TX'})];
+		} else if( mode === 'TX' ) {
+			mode = 'REMOTE';
 			label = 'remote id';
+		} else if( mode === 'REMOTE' ) {
+			mode = 'DESCR';
+			label = 'descriptions';
 		} else {
 			mode = '';
-			label = 'TX/RX';
+			label = 'RX/TX';
 		}
 		fibers.tx_rx_mode = mode;
 		$('#btn-toggle-tx-rx').html(label).toggleClass('downed', Boolean(mode));
@@ -248,7 +246,7 @@ fibers.set_map_view = function(is_map_view)
 	$('#map-container').toggle(is_map_view);
 	$('#map-button-panel').toggle(is_map_view);
 	fibers.cy.resize();
-}
+};
 
 fibers.export_json_callback = function(data)
 {
@@ -367,12 +365,13 @@ fibers.add_listeners = function(div, params)
 
 fibers.main_menu = function(params)
 {
-	let render_params = {
+	const render_params = {
 		not_read_only: !fibers.read_only,
 		eh_enabled: fibers.eh_enabled,
 		position_grid_en: fibers.position_grid_en,
 		is_infrastructure_view: fibers.is_infrastructure_view,
-		can_trace_path: sessionStorage.getItem('fibers_path_start') && sessionStorage.getItem('fibers_path_end')
+		can_trace_path: sessionStorage.getItem('fibers_path_start') && sessionStorage.getItem('fibers_path_end'),
+		data_path_is_active: fibers.data_path_is_active
 	};
 	let div = api_base.template('main_menu', render_params);
 	fibers.show_modal( div, params );
@@ -476,6 +475,7 @@ fibers.cable_connector_menu = function(params)
 fibers.frame_menu = function(params, target)
 {
 	params.can_resize = Boolean(target.children().length > 2); // 1 connector + 1 size control element
+	params.can_copy = Boolean(fibers.cy.elements(':selected').length);
 	let div = api_base.template('frame_menu', Object.assign({target: target.data()}, params));
 	nody.modal_window.content( div );
 
@@ -545,6 +545,26 @@ fibers.cable_joint_data = function(params)
 {
 	params.not_read_only = !fibers.read_only;
 	let div = api_base.template('cable_joint_data', params);
+	fibers.show_modal( div, params );
+};
+
+fibers.cable_insert_splitter = function(params, target)
+{
+	nody.click_pos.x = -1;
+	nody.click_pos.y = -1;
+	params.fibers = [];
+	const inner_units = Object.entries(params.inner_units)
+	for( const [num, data] of inner_units.sort((a, b) => a[0] - b[0]) ) {
+		let color = fibers.fibers_colors[data.color];
+		color = color ? color.color : '#909090';
+		const c = color.split(' ');
+		params.fibers.push({
+			i: data.i,
+			first_color : c[0],
+			second_color: c.length > 1 ? c[1] : undefined
+		});
+	}
+	let div = api_base.template('cable_insert_splitter', params);
 	fibers.show_modal( div, params );
 };
 
@@ -620,7 +640,7 @@ fibers.link_with_scheme_save_callback = function(params)
 		$('#toggle-all-linked-schemes').toggle(Boolean(params[0].add_data.linked_scheme));
 	}
 	return fibers.replace_obj(params);
-}
+};
 
 fibers.goto_linked_scheme_callback = function(params)
 {

@@ -12,7 +12,7 @@
 {{#if is_infrastructure_view }}
 {{ else }}
   <a href='#' class='cell4' data-action='create-panel'><hr class='create_patchpanel'>{{ lang.add_patchpanel }}</a>
-  <a href='#' class='cell4' data-action='create-coupler'><hr class='create_coupler'>{{ lang.add_junction_box }}</a>
+  <a href='#' class='cell4' data-action='create-coupler'><hr class='create_coupler'>{{ lang.add_splice_closure }}</a>
   <a href='#' class='cell4' data-action='create-splitter'><hr class='create_splitter'>{{ lang.add_splitter }}</a>
   <a href='#' class='cell4' data-action='create-onu'><hr class='create_onu'>ONU</a>
   <a href='#' class='cell4' data-action='create-switch'><hr class='create_switch'>{{ lang.add_commutator }}</a>
@@ -91,7 +91,7 @@
       {{#if has_parent }}<a href='#' data-ajax='remove_from_container'><hr class='menu_img move_from_container'>{{ lang.remove_from_container }}</a>{{/if}}
 <!-- 
     <form data-ajax='frame_upload_img' action='#' method='post' enctype='multipart/form-data'>
-        Загрузить фото: <input type='file' name='img' accept='image/*'>
+        Photo: <input type='file' name='img' accept='image/*'>
         <input type='submit' value='Upload' class='nav_button'>
     </form>
 -->
@@ -102,6 +102,7 @@
     <div class='col'>
       <a href='#' data-ajax='frame_remove' data-confirm='yes'><hr class='menu_img menu_unit_remove'>{{ lang.remove }}</a>
     </div>
+    {{#if can_copy }}<div class='col'><a href='#' data-action='copy' style='padding: 0'><hr class='menu_img btn-copy'>{{ lang.Copy }}</a></div>{{/if}}
   </div>
 </div>
 
@@ -185,7 +186,7 @@
 {{/if}}
   </div>
   <hr>
-  <a href='#' data-ajax='pon_path'>PON path</a>
+  <a href='#' data-ajax='pon_path'>{{ lang.PON_tree }}</a>
   <a href='#' data-action='path_start'>{{#if fibers_path_start}}<span style='color: #000000'>✓</span> {{/if}}{{ lang.start_path_point }}{{#if_eq fibers_path_start 'other'}}<br>&nbsp;&nbsp;&nbsp;&nbsp;({{ lang.on_the_other_scheme }}){{/if_eq}}</a>
   <a href='#' data-action='path_end'>{{#if fibers_path_end}}<span style='color: #000000'>✓</span> {{/if}}{{ lang.end_path_point }}{{#if_eq fibers_path_end 'other'}}<br>&nbsp;&nbsp;&nbsp;&nbsp;({{ lang.on_the_other_scheme }}){{/if_eq}}</a>
 {{#if not_read_only }}<hr><a href='#' data-ajax='frame_inner_remove' data-confirm='yes'><hr class='menu_img menu_unit_remove'>{{ lang.remove }}</a>{{/if}}
@@ -198,9 +199,24 @@
   <input type='hidden' name='id' value='{{ id }}'>
   <input type='hidden' name='inner_id' value='{{ inner_id }}'>
   <table class='td_ok'>
-      <tr><td>{{ lang.name }}</td><td><input type='text' name='name' value='{{ name }}'></td></tr>
-      <tr><td>{{ lang.description }}</td><td><input type='text' name='description' value='{{ description }}'></td></tr>
-      <tr><td>Remote id</td><td><input type='text' name='remote_id' value='{{ remote_id }}'></td></tr>
+    <tr><td>{{ lang.name }}</td><td><input type='text' name='name' value='{{ name }}'></td></tr>
+    <tr><td>{{ lang.description }}</td><td><input type='text' name='description' value='{{ description }}'></td></tr>
+    <tr><td>Remote id</td><td><input type='text' name='remote_id' value='{{ remote_id }}'></td></tr>
+{{#if signal_ratio}}<tr><td colspan='2' style='padding:0;'>
+  <table class='width100'><tr><td>{{{ lang.splitting_ratio }}}</td><td class='h_right'><input type='text' name='signal_ratio' value='{{ signal_ratio }}' style='width:50px;'></td></tr></table>
+</td></tr>{{/if}}
+{{#if con_type}}
+  <tr>
+    <td>З'єднання</td>
+    <td><select name='con_type'>
+          <option value='cc'>{{ lang.input }}: {{ lang.connector }}, {{ lang.output }}: {{ lang.connector }}</option>
+          <option value='ss'{{#if_eq con_type 'ss'}} selected{{/if_eq}}>{{ lang.input }}: {{ lang.soldering }}, {{ lang.output }}: {{ lang.soldering }}</option>
+          <option value='cs'{{#if_eq con_type 'cs'}} selected{{/if_eq}}>{{ lang.input }}: {{ lang.connector }}, {{ lang.output }}: {{ lang.soldering }}</option>
+          <option value='sc'{{#if_eq con_type 'sc'}} selected{{/if_eq}}>{{ lang.input }}: {{ lang.soldering }}, {{ lang.output }}: {{ lang.connector }}</option>
+        </select>
+    </td>
+  </tr>
+{{/if}}
 {{#if not_read_only }}<tr><td colspan='2' class='h_center'><input type='submit' value='Ok' class='nav_button'></td></tr>{{/if}}
   </table>
 </form>
@@ -212,16 +228,11 @@
 {{#each colors_presets}}
 <div style='border-top: 1px solid #dddddd; padding: 3px;' data-color-preset-id='{{ this.preset_id }}' class='navmenu'>
   <a href='#'>{{ this.description }}</a>
-  <div style='font-size: 0;'>
+  <div style='font-size:0;'>
   {{#each this.colors }}
-      <div style='display: inline-block; margin-left: 3px; width: 14px; height: 14px; padding: 0'>
-      {{#if this.second }}
-          <div style='width: 50%; height: 100%; display: inline-block; background-color: {{this.first}};'></div>
-          <div style='width: 50%; height: 100%; display: inline-block; background-color: {{this.second}};'></div>
-      {{else}}
-          <div style='width: 100%; height: 100%; display: inline-block; background-color: {{this.first}};'></div>
-      {{/if}}
-      </div>
+    <div class='select-color' style='background-color:{{this.first}}; margin-right:2px;'>
+      {{#if this.second }}<div class='second-color' style='background-color:{{this.second}};'></div>{{/if}}
+    </div>
   {{/each}}
   </div>
 </div>
@@ -376,7 +387,7 @@
       {{#if can_align_y }}
           <a href='#' data-ajax='cable_joint_align' data-type='y'><hr class='menu_img menu_horis_cable'>{{ lang.horizontally }}</a>
       {{/if}}
-      <a href='#' data-ajax='cable_fiber_add'><hr class='menu_img menu_fiber_add'>{{ lang.add_a_fiber }}</a>
+      <a href='#' data-ajax='cable_insert_splitter'><hr class='menu_img menu_cable_insert_splitter'>{{ lang.insert_a_splitter }}</a>
     </div>
     <div class='col'>
       <a href='#' data-ajax='cable_cut'><hr class='menu_img menu_cable_cut'>{{ lang.cut_the_cable }}</a>
@@ -392,9 +403,18 @@
     </div>
 {{/if}}
   </div>
-{{#if not_read_only }}<hr><a href='#' data-ajax='cable_remove' data-confirm='yes'><hr class='menu_img menu_cable_remove'>{{ lang.remove_the_cable }}</a>{{/if}}
+{{#if not_read_only }}
+  <hr>
+  <div class='row'>
+    <div class='col'>
+      <a href='#' data-ajax='cable_fiber_add'><hr class='menu_img menu_fiber_add'>{{ lang.add_a_fiber }}</a>
+    </div>
+    <div class='col'>
+      <a href='#' data-ajax='cable_remove' data-confirm='yes'><hr class='menu_img menu_cable_remove'>{{ lang.remove_the_cable }}</a>
+    </div>
+  </div>
 </div>
-
+{{/if}}
 
     <nodeny>cable_data</nodeny>
 
@@ -592,32 +612,82 @@
 
     <nodeny>scheme_data</nodeny>
 
-<form method='post' data-ajax='scheme_data_save' action='#' class='txtpadding' style='display: flex;'>
+<form method='post' data-ajax='scheme_data_save' action='#' class='txtpadding' style='display: flex;' autocomplete='off'>
   <input type='hidden' name='id' value='{{ id }}'>
   <table class='td_ok'>
     {{#if is_block }}<tr><td colspan='2' class='big h_center'>{{ lang.Scheme_blank }}</td></tr>
-    {{ else }}<tr><td>{{ lang.Scheme_id }}</td><td class='wide_input'><input type='text' value='{{ gid }}' disabled='disable' style='color: #000'></div></td></tr>
+    {{ else }}<tr><td>{{ lang.Scheme_id }}</td><td class='wide_input'><input type='text' value='{{ gid }}' disabled='disabled' style='color: #000'></td></tr>
     {{/if}}
     <tr><td>{{ lang.name }}</td><td class='wide_input'><input type='text' name='name' value='{{ name }}'></td></tr>
     {{#if can_change_sharing }}
-        <tr><td style='max-width: 150pt;'>{{ lang.available_to_everyone }}</td>
-            <td><select name='shared'>
-                  <option value='0'{{#if_eq shared 0}} selected{{/if_eq}}>{{ lang.No }}</option>
-                  <option value='1'{{#if_eq shared 1}} selected{{/if_eq}}>{{ lang.ReadOnly }}</option>
-                  <option value='2'{{#if_eq shared 2}} selected{{/if_eq}}>{{ lang.FullAccess }}</option>
-                </select>
-            </td>
+        <tr>
+          <td style='max-width: 150pt;'>{{ lang.available_to_everyone }}</td>
+          <td>
+            <select name='shared'>
+              <option value='0'{{#if_eq shared 0}} selected{{/if_eq}}>{{ lang.No }}</option>
+              <option value='1'{{#if_eq shared 1}} selected{{/if_eq}}>{{ lang.ReadOnly }}</option>
+              <option value='2'{{#if_eq shared 2}} selected{{/if_eq}}>{{ lang.FullAccess }}</option>
+            </select>
+          </td>
         </tr>
         {{#unless is_block }}
-            <tr><td>{{ lang.in_favorites }}</td>
-              <td><input value='1' name='favorite' type='checkbox' {{ favorite_checked }}></td></tr>
-            <tr><td>{{ lang.inner_data_in_db }}</td>
-              <td class='wide_input'><input type='text' name='inner_data_db' value='{{ inner_data_db }}'></td></tr>
-            <tr><td>&nbsp;</td><td class='wide_input'>server:db_name:user:password:db_table</td></tr>
-            <tr><td>{{ lang.inner_data_db_fields }}</td><td class='wide_input'>
-                <input type='text' name='inner_data_db_fields' value='{{ inner_data_db_fields }}'></td></tr>
-            <tr><td>&nbsp;</td><td class='wide_input'>field(s):tx_value:rx_value.<br>
-              <span class='disabled'>For example:</span> olt_id+llid:tx:rx</td></tr>
+          <tr>
+            <td>{{ lang.in_favorites }}</td>
+            <td><input value='1' name='favorite' type='checkbox' {{ favorite_checked }}></td>
+          </tr>
+          <tr>
+            <td colspan='2'>
+              <details>
+                <summary>{{ lang.inner_data_in_db }}</summary>
+                <table class='td_ok'>
+                  <tr>
+                    <td>{{ lang.inner_data_connection_params }}</td>
+                    <td><input type='text' name='inner_data_db' value='{{ inner_data_db }}' style='width: 20pt' onclick="$(this).css('width', '220pt');"></td></tr>
+                  <tr>
+                    <td>&nbsp;</td><td>server:db_name:user:password:db_table</td></tr>
+                  <tr>
+                    <td>{{ lang.inner_data_db_fields }}</td><td>
+                    <input type='text' name='inner_data_db_fields' value='{{ inner_data_db_fields }}' style='width: 220pt'></td></tr>
+                  <tr>
+                    <td>&nbsp;</td><td class='wide_input'>id_field:tx_value:rx_value<br>
+                    <span class='disabled'>For example:</span> mac:tx:rx</td></tr>
+                </table>
+
+                <br>{{ lang.Signal_level_colors }}
+                <div id='signal-level-range'></div>
+                <input type='hidden' name='signal_levels' id='signal_levels_as_str'>
+<script>
+(function($) {
+  const reverse = true;
+  let values = [{{ settings.signal_levels }}];
+  if( reverse ) {
+    values = values.map(num => -1 * num);
+    values.reverse();
+  }
+  let range = $('#signal-level-range').two_range_slider({
+    range: true,
+    min: -1 * {{ settings.max_signal_level }},
+    max: -1 * {{ settings.min_signal_level }},
+    step: 0.25,
+    value_padding: 1,
+    values: values,
+    show_value: function(value) {
+      if( reverse ) value *= -1;
+      return '&nbsp;' + value;
+    },
+    callback: function(values) {
+      if( reverse ) {
+        values = values.map(num => -1 * num);
+        values.reverse();
+      }
+      $('#signal_levels_as_str').val(values.join(','));
+    }
+  });
+})(jQuery);
+</script>
+              </details>
+            </td>
+          </tr>
         {{/unless}}
     {{else}}
       {{#if shared }}
@@ -632,20 +702,23 @@
     {{/unless}}
   </table>
 <div>
-    <p>Tags:</p>
-    {{#each settings.tags}}
-      <div class='nowrap'><span style='min-width: 11.5pt; display: inline-block;'>{{@key}}</span> <input type='text' name='tag_{{@key}}' value='{{this}}'></div>
-    {{/each}}
-</div>
-<div>
 {{#if is_block }}{{ else }}
-  {{#if access_cable_types }}
   <ul>
+  {{#if access_cable_types }}
     <li><a class='new_window' href='{{current_url}}&a=op_modal&act=fibers_cable_types'>{{ lang.Cable_types }}</a></li>
     <li><a class='new_window' href='{{current_url}}&a=op_modal&act=fibers_container_types'>{{ lang.Container_types }}</a></li>
     <li><a class='item can-toggle new_window' href='{{current_url}}&a=op_modal&act=fibers_trunks' id='btn-trunks-edit'>{{ lang.Trunks }}</a></li>
-  </ul>
   {{/if}}
+    <li>
+      <details>
+        <summary>Tags</summary>
+        {{#each settings.tags}}
+          <div class='nowrap'><span style='min-width: 11.5pt; display: inline-block;'>{{@key}}</span> <input type='text' name='tag_{{@key}}' value='{{this}}'></div>
+        {{/each}}
+    </details>
+    </li>
+  </ul>
+
 {{/if}}
 </div>
 </form>
@@ -757,3 +830,110 @@
   });
 </script>
 
+
+    <nodeny>cable_insert_splitter</nodeny>
+
+<div class='boxpddng' style='max-height: 500px;'>
+<form method='post' data-ajax='cable_insert_splitter_now' action='#'>
+  <input type='hidden' name='id' value='{{ id }}'>
+  <input type='hidden' name='joint_num' value='{{ joint_num }}'>
+  <input type='hidden' name='x' value='{{ x }}'>
+  <input type='hidden' name='y' value='{{ y }}'>
+  <table class='radio-no-text-label h_center' id='cable_insert_splitter'>
+    <tr class='vertical-text-60-deg'>
+      <td colspan='2'></td>
+      <td>{{ lang.split }}</td>
+      <td>{{ lang.splice }}</td>
+      <td>{{{ lang.not_connected }}}</td>
+    </tr>
+  {{#each fibers}}
+    <tr>
+      <td style='padding: 1px 4px'>{{ this.i }}</td>
+      <td style='padding-right: 6px'>
+        <div class='select-color' style='background-color:{{this.first_color}}'>
+          {{#if this.second_color }}<div class='second-color' style='background-color:{{this.second_color}};'></div>{{/if}}
+        </div>
+      </td>
+      <td><label for='r_splitter{{ this.i }}'><input
+          type='radio' name='splitter' value='{{ this.i }}' id='r_splitter{{ this.i }}'></label></td>
+      <td><label for='r_soldering{{ this.i }}'><input
+          type='radio' name='soldering{{ this.i }}' value='{{ this.i }}' checked='checked' id='r_soldering{{ this.i }}'></label></td>
+      <td><label for='r_nothing{{ this.i }}'><input
+          type='radio' name='nothing{{ this.i }}' value='{{ this.i }}' id='r_nothing{{ this.i }}'></label></td>
+    </tr>
+  {{/each}}
+    <tr class='td_tall'>
+      <td colspan='5' class='h_center'>{{ lang.number_of_ports }}
+        <select name='connectors'>
+          <option value='2'>2</option>
+          <option value='4' selected>4</option>
+          <option value='8'>8</option>
+          <option value='16'>16</option>
+          <option value='32'>32</option>
+        </select>
+        <select name='ratio'>
+          <option value='50/50'></option>
+          <option value='45/55'>45/55</option>
+          <option value='40/60'>40/60</option>
+          <option value='35/65'>35/65</option>
+          <option value='30/70'>30/70</option>
+          <option value='25/75'>25/75</option>
+          <option value='20/80'>20/80</option>
+          <option value='15/85'>15/85</option>
+          <option value='10/90'>10/90</option>
+          <option value=' 5/95'>5/95</option>
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <td colspan='5' class='h_center'><input type='submit' value='Ok' class='nav_button'></td>
+    </tr>
+  </table>
+</form>
+</div>
+<script>
+  var cis_id = '#cable_insert_splitter ';
+
+  var splitter_ratio = localStorage.getItem('splitter_ratio');
+  var input_ratio = $(cis_id + '[name=ratio]');
+  if( splitter_ratio ) input_ratio.val(splitter_ratio);
+  input_ratio.on('change', function() {
+    localStorage.setItem('splitter_ratio', $(this).val());
+  });
+
+  var splitter_connectors = localStorage.getItem('splitter_connectors');
+  var input_connectors = $(cis_id + '[name=connectors]');
+  if( splitter_connectors ) input_connectors.val(splitter_connectors);
+  input_connectors.on('change', function() {
+    localStorage.setItem('splitter_connectors', $(this).val());
+    input_ratio.toggle( $(this).val() == 2 );
+  }).trigger('change');
+
+  $(cis_id + 'input[name=splitter]').on('change', function(){
+    const fiber = $(this).val();
+    $(cis_id + 'input[name=soldering' + fiber + ']').prop('checked', false);
+    $(cis_id + 'input[name=nothing' + fiber + ']').prop('checked', false);
+    $(cis_id + 'input[name=splitter]').each(function() {
+      const fiber = $(this).val();
+      if( !$(this).prop('checked') &&
+          !$(cis_id + 'input[name=nothing' + fiber + ']').prop('checked')
+      ) {
+        $(cis_id + 'input[name=soldering' + fiber + ']').prop('checked', true);
+      }
+    });
+  });
+  $(cis_id + 'input[name^=soldering]').on('change', function(){
+    const fiber = $(this).val();
+    $(cis_id + 'input[name=nothing' + fiber + ']').prop('checked', false);
+    if( $(cis_id + 'input[name=splitter]:checked').val() == fiber ) {
+      $(cis_id + 'input[name=splitter]').prop('checked', false);
+    }
+  });
+  $(cis_id + 'input[name^=nothing]').on('change', function(){
+    const fiber = $(this).val();
+    $(cis_id + 'input[name=soldering' + fiber + ']').prop('checked', false);
+    if( $(cis_id + 'input[name=splitter]:checked').val() == fiber ) {
+      $(cis_id + 'input[name=splitter]').prop('checked', false);
+    }
+  });
+</script>

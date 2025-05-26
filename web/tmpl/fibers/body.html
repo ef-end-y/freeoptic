@@ -36,7 +36,7 @@
           <a href='#' data-menu='show_collection' class='main_menu_btn btn-collection' data-menu-view='full' data-menu-add-fibers='1' title='{{ lang.Collection }}'></a>
         {% endif %}
         {% if inner_data_db %}
-          <a href='#' data-action='toggle-tx-rx' id='btn-toggle-tx-rx' class='can-toggle'>TX/RX</a>
+          <a href='#' data-action='toggle-tx-rx' id='btn-toggle-tx-rx' class='can-toggle'>RX/TX</a>
         {% endif %}
         <a href='#' id='btn-read-only' data-action='read-only' title='{{ lang.ReadOnly }}' class='can-toggle'>RO</a>
         {% if is_admin %}
@@ -46,6 +46,9 @@
       <span id='global_search'>
         </select><input type='text'>
       </span>
+      <div id='show_all' style='display: none'>
+        <a href='#' data-action='show_all' class='error'>{{ lang.Show_all }}</a>
+      </div>
       <div id='map-button-panel' style='display:none'>
         <a href='#' data-action='toggle-map-cable-length' id='btn-toggle-map-cable-length' class='can-toggle'>{{ lang.Track_length }}</a>
       </div>
@@ -83,9 +86,6 @@
   </div></div></div>
   <div class='box_r'><div class='box_l' style='padding-top: 5px'>
     <div class='fibers__operation_block'>
-      <div id='show_all' class='navmenu big' style='padding: 5px; display: none'>
-        <a href='#' data-action='show_all'>{{ lang.Show_all }}</a>
-      </div>
       <div class='navmenu'>
         <a href='#' data-fibers-menu='bookmark_create'>♥ {{ lang.add_to_bookmarks }}</a>
         <div id='fibers__bookmarks_list' class='hide_if_empty'></div>

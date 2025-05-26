@@ -217,6 +217,7 @@ fibers._make_unit = function(data, do_replace)
 						fragment_link    : joint.fragment_link
 					};
 					if( joint.is_edge && add_data.linked_scheme ) joint_container_data['linked_scheme'] = add_data.linked_scheme;
+					if( inner_units_values.length == 1 ) joint_classes += ' monofiber';
 					elements.push(join_params({
 						data : joint_container_data,
 						selectable : true,
@@ -252,6 +253,7 @@ fibers._make_unit = function(data, do_replace)
 					target : prev_id,
 					cls    : 'collapsed_cable'
 				};
+				if( inner_units_values.length == 1 ) cable_classes += ' monofiber';
 				if( simplified_scheme )
 				{
 				}
@@ -261,7 +263,7 @@ fibers._make_unit = function(data, do_replace)
 					if( data.name ) label = data.name + (label ? ': ' + label : '');
 					cable_data.label = label;
 				}
-				
+
 				if( data.in_path ) {
 					cable_classes += ' in_path';
 				} else if( fibers.tx_rx_mode ) {
@@ -318,15 +320,15 @@ fibers._make_unit = function(data, do_replace)
 			if( !fragment_link )
 			{
 				let bone_fiber_tip = join_params({
-				    data : {
-				        cls    : 'bone_fiber_tip',
-				        id     : parent_id + ':bone',
-				        parent : parent_id
-				    },
-				    position : {
-				        x : side_joints[p.side].x,
-				        y : side_joints[p.side].y
-				    }
+					data : {
+						cls    : 'bone_fiber_tip',
+						id     : parent_id + ':bone',
+						parent : parent_id
+					},
+					position : {
+						x : side_joints[p.side].x,
+						y : side_joints[p.side].y
+					}
 				});
 				elements.push(bone_fiber_tip);
 			}
@@ -490,19 +492,19 @@ fibers._make_unit = function(data, do_replace)
 		};
 
 		if( +data.width > 0 && +data.height> 0 ) {
-		    frame_data.set_width = +data.width;
-		    frame_data.set_height = +data.height;
-		    //x += 50;
+			frame_data.set_width = +data.width;
+			frame_data.set_height = +data.height;
+			//x += 50;
 		}
 
 		elements.push(join_params({
-		    data      : frame_data,
-		    selectable: true,
-		    classes   : frame_classes,
-		    position  : {
-		        x : x + x_min,
-		        y : y + y_min
-		    }
+			data      : frame_data,
+			selectable: true,
+			classes   : frame_classes,
+			position  : {
+				x : x + x_min,
+				y : y + y_min
+			}
 		}));
 
 		elements.push(join_params({
@@ -554,8 +556,8 @@ fibers._make_unit = function(data, do_replace)
 				y : parseFloat(param.y)
 			};
 			// protection
-			if( Math.abs(inner_position.x) > 2000 ) inner_position.x = 2000;
-			if( Math.abs(inner_position.y) > 2000 ) inner_position.y = 2000;
+			inner_position.x = Math.max( Math.min(inner_position.x, 2000), -2000 );
+			inner_position.y = Math.max( Math.min(inner_position.y, 2000), -2000 );
 
 			let el_data = {
 				i      : param.i,
@@ -567,17 +569,36 @@ fibers._make_unit = function(data, do_replace)
 				inner_position : inner_position
 			};
 
-			let label = !fibers.scheme_gid ? undefined : (
-			    fibers.tx_rx_mode === 'DESCR' ? param.remote_id :
-			    (fibers.show_description ? param.description : (param.type == 'solder' ? undefined : param.name))
-			);
-			const label_len = (label || '').length;
+			let label;
+			let frame_inner_classes = [];
+			if( !fibers.scheme_gid ) {
+				label = undefined;
+			} else if( fibers.tx_rx_mode === 'REMOTE' ) {
+				label = param.remote_id;
+			} else if( fibers.tx_rx_mode === 'DESCR' || fibers.show_description ) {
+				label = param.description;
+			} else if( param.type === 'solder' ) {
+				label = undefined;
+			} else if( param.signal_ratio && !fibers.tx_rx_mode ) {
+				label = param.signal_ratio;
+			} else {
+				label = param.name;
+			}
 			el_data.label = label;
-			let frame_inner_classes = (classes == 'mute' || !param.mute ? '' : 'mute');
+
+			const label_len = (label || '').length;
+			if( classes != 'mute' && param.mute ) {
+				frame_inner_classes.push('mute');
+			}
 			if( fibers.tx_rx_mode ) {
-				frame_inner_classes = label_len ? 'accent' : 'mute';
+				frame_inner_classes.push(label_len ? 'accent' : 'mute');
+			} else if( param.signal_ratio ) {
+				frame_inner_classes.push('signal_ratio');
 			} else if( label_len > 2 ) {
-				frame_inner_classes += ' small-font';
+				frame_inner_classes.push('small-font');
+			}
+			if( param.style ) {
+				frame_inner_classes.push(param.style);
 			}
 
 			elements.push(join_params({
@@ -586,7 +607,7 @@ fibers._make_unit = function(data, do_replace)
 					x : x + inner_position.x,
 					y : y + inner_position.y
 				},
-				classes : frame_inner_classes
+				classes : frame_inner_classes.join(' ')
 			}));
 
 			if( param.type == 'splitter' && param.i > 0 )
@@ -610,86 +631,85 @@ fibers._make_unit = function(data, do_replace)
 	}
 	// console.log(elements);
 	return elements;
-}
+};
 
 fibers.make_link = function(data)
 {
-    let elements = [];
-    let fragments = [];
-    let joint_num = 0;
-    let id = data.id;
-    for( let joint of data.joints )
-    {
-        let joint_id = 'link:' + id + ':joint:' + joint_num;
-        elements.push({
-            data : {
-                cls   : 'link_joint',
-                id    : joint_id,
-                link_id : id,
-                joint_num : joint_num
-            },
-            position : {
-                x : +joint.x,
-                y : +joint.y
-            }
-        });
-        fragments.push(joint_id);
-        joint_num++;
-    }
-    let src = '' + data.src + ':' + data.src_side + (data.src_inner === undefined ? '' : ':' + data.src_inner);
-    let dst = '' + data.dst + ':' + data.dst_side + (data.dst_inner === undefined ? '' : ':' + data.dst_inner);
-    fragments.push(dst);
-    let fragment_num = 0;
-    const color_obj = fibers.fibers_colors[data.color];
-    const color = color_obj ? color_obj.color : '#a0a0a0';
-    for( let dst of fragments )
-    {
-        let link_classes = data.mute ? 'mute' : '';
-        if( fibers.simplified_scheme ) link_classes += ' simplified';
-        elements.push({
-            data : {
-                i      : data.id,
-                id     : 'link:' + id + ':fragment:' + fragment_num,
-                source : src,
-                target : dst,
-                cls    : 'link',
-                type   : 'link',
-                color  : color,
-                fragment : fragment_num
-            },
-            group      : 'edges',
-            selectable : false,
-            classes    : link_classes
-        });
-        src = dst;
-        fragment_num++;
-    }
-    return elements;
-}
+	let elements = [];
+	let fragments = [];
+	let joint_num = 0;
+	let id = data.id;
+	for( let joint of data.joints )
+	{
+		let joint_id = 'link:' + id + ':joint:' + joint_num;
+		elements.push({
+			data : {
+				cls   : 'link_joint',
+				id    : joint_id,
+				link_id : id,
+				joint_num : joint_num
+			},
+			position : {
+				x : +joint.x,
+				y : +joint.y
+			}
+		});
+		fragments.push(joint_id);
+		joint_num++;
+	}
+	let src = '' + data.src + ':' + data.src_side + (data.src_inner === undefined ? '' : ':' + data.src_inner);
+	let dst = '' + data.dst + ':' + data.dst_side + (data.dst_inner === undefined ? '' : ':' + data.dst_inner);
+	fragments.push(dst);
+	let fragment_num = 0;
+	const color_obj = fibers.fibers_colors[data.color];
+	const color = color_obj ? color_obj.color : '#a0a0a0';
+	for( let dst of fragments )
+	{
+		let link_classes = data.mute ? 'mute' : '';
+		if( fibers.simplified_scheme ) link_classes += ' simplified';
+		elements.push({
+			data : {
+				i      : data.id,
+				id     : 'link:' + id + ':fragment:' + fragment_num,
+				source : src,
+				target : dst,
+				cls    : 'link',
+				type   : 'link',
+				color  : color,
+				fragment : fragment_num
+			},
+			group      : 'edges',
+			selectable : false,
+			classes    : link_classes
+		});
+		src = dst;
+		fragment_num++;
+	}
+	return elements;
+};
 
 fibers.make_grouped_links = function(links_params)
 {
-    let elements = [];
-    let already = {};
-    for( let data of links_params )
-    {
-        let src = data.src + ':' + data.src_side;
-        let dst = data.dst + ':' + data.dst_side;
-        if( already[src + '+' + dst] || already[dst + '+' + src] ) continue;
-        already[src + '+' + dst] = 1;
-        elements.push({
-            data : {
-                id     : 'grouped_links:' + data.id,
-                source : src,
-                target : dst,
-                cls    : 'grouped_links'
-            },
-            group      : 'edges',
-            selectable : false,
-            classes    : data.mute ? 'mute' : '',
-            locked     : true
-        });
-    }
-    return elements;
-}
-
+	let elements = [];
+	let already = {};
+	for( let data of links_params )
+	{
+		let src = data.src + ':' + data.src_side;
+		let dst = data.dst + ':' + data.dst_side;
+		if( already[src + '+' + dst] || already[dst + '+' + src] ) continue;
+		already[src + '+' + dst] = 1;
+		elements.push({
+			data : {
+				id     : 'grouped_links:' + data.id,
+				source : src,
+				target : dst,
+				cls    : 'grouped_links'
+			},
+			group      : 'edges',
+			selectable : false,
+			classes    : data.mute ? 'mute' : '',
+			locked     : true
+		});
+	}
+	return elements;
+};
