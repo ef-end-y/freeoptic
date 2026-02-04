@@ -446,7 +446,7 @@ sub _set_cookie_str
         foreach my $key( keys %$ses::set_cookie )
         {
             my $val = $ses::set_cookie->{$key};
-            my $expire = $val ne '' ? 'Thu,31-Dec-2025' : 'Thu,31-Dec-2025';
+            my $expire = 'Fri,31-Dec-2032';
             my $add_cookie_data = '';
             if( ref $val eq 'HASH')
             {
