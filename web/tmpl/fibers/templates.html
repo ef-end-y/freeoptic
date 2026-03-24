@@ -166,8 +166,9 @@
       </td>
     </tr>
 {{/if}}
-
+{{#if not_read_only }}
     <tr><td colspan='2' class='h_center'><input type='submit' value='Ok' class='nav_button'></td></tr>
+{{/if}}
   </table>
 </form>
 
@@ -327,7 +328,7 @@
         <td><div class='menu_img menu_fibers'></div></td>
     </tr>
     <tr><td class='h_right'>{{ lang.number_of_tubes }}:</td>
-        <td><input type='number' name='multimode' value='1' min='1' max='96' style='font-size: 100%'></td>
+        <td><input type='number' name='multimode' value='1' min='1' max='8' style='font-size: 100%'></td>
         <td><div class='menu_img menu_cable_multimode'></div></td>
     </tr>
     <tr><td class='h_center' colspan='3'><input type='submit' class='nav_button' value='Ok' style='padding: 6px 25px'></td></tr>

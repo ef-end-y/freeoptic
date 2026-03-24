@@ -287,7 +287,7 @@ cy.on('dbl-click', function(event0, event)
 	if( cls == 'collapsed_cable' )
 	{
 		let xy = [];
-		for( let i in [0, 1] )
+		for( let i of [0, 1] )
 		{
 			let b = target.connectedNodes()[i].boundingBox();
 			xy.push({ x : (b.x2+b.x1)/2, y : (b.y2+b.y1)/2 });
@@ -547,7 +547,8 @@ cy.on('dragfree', function(event)
 				let pos = target.data('pos') + delta;
 				if( pos > target.data('next_pos') || pos < target.data('prev_pos') )
 				{
-					target.position({x: pos.x, y: pos.y});
+					const start_pos = target.data('start_pos');
+					target.position({x: start_pos.x, y: start_pos.y});
 					return fibers.menu('fiber_tip_drag', data);
 				}
 				 else

@@ -506,6 +506,7 @@ fibers.frame_data = function(params)
 		}
 		if( tags.length ) params.the_tags = tags;
 	}
+	params.not_read_only = !fibers.read_only;
 	let div = api_base.template('frame_data', params);
 	fibers.show_modal( div, params );
 };

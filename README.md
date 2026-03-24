@@ -79,7 +79,7 @@ In this mode you can draw connections between fiber edges of cable and connector
 <img src="htdocs/doc/color_presets.png" style="width: 292px; margin-left: 5%; vertical-align: middle;">
 <img src="htdocs/doc/color_preset_creation.png" style="width: 232px; vertical-align: middle;">
 
-- Multimode fiber cable
+- Loose tube cables
 
 <img src="htdocs/doc/multimode.jpg" style="width: 414px; margin-left: 5%;">
 

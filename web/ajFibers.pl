@@ -58,7 +58,7 @@ sub go
 	$User->{role} = $role;
 
 	$role eq 'admin' or Error('Access denied (wrong role)');
-    $User->{superadmin} = 1 if Adm->chk_privil('SuperAdmin');
+	$User->{superadmin} = 1 if Adm->chk_privil('SuperAdmin');
 	$Uid = int $ses::auth->{adm}{uid};
 
 	my $scheme_id = 0;
@@ -971,12 +971,12 @@ sub get_all
 		my $db = Db->sql("SELECT id, type, color, line_width FROM fibers_cable_types $sql_end");
 		while( my %p = $db->line )
 		{
-		  $cable_types->{$p{id}} = \%p;
+			$cable_types->{$p{id}} = \%p;
 		}
 		my $db = Db->sql("SELECT id, type, color, shape, size, hide_on_zoom FROM fibers_container_types $sql_end");
 		while( my %p = $db->line )
 		{
-		  $container_types->{$p{id}} = \%p;
+			$container_types->{$p{id}} = \%p;
 		}
 	#        my $name_field = $cfg::Lang eq 'RU' ? 'name_ru' : 'name_uk';
 	#        my $db = Db->sql('SELECT id, name_ru, name_uk, comment FROM fibers_trunks WHERE scheme_id=?', $scheme_id);
@@ -2594,7 +2594,7 @@ sub cable_joint_align
 	{
 		my $side = $joint_num <= 1 ? 0 : $joint_num >= $joints_count+1 ? 1 : -1;
 		my $d = ($type eq 'x' && $rotate->[$side] > 1) ||
-		      ($type eq 'y' && $rotate->[$side] < 2) ? $add_data->{collapsed_coord}[$side] : 0;
+				($type eq 'y' && $rotate->[$side] < 2) ? $add_data->{collapsed_coord}[$side] : 0;
 		if( $side == 0 )
 		{
 			$joints->[0]{$type} = $d + ($type eq 'x' ? $u->{x} + $u->{xa} : $u->{y} + $u->{ya});
@@ -2613,8 +2613,8 @@ sub cable_joint_align
 		if( int($rotate->[0]/2) == int($rotate->[1]/2) )
 		{
 			my $d = $type eq 'x'
-			      ? $u->{x} + $u->{xa} - $u->{x0} - $u->{xb}
-			      : $u->{y} + $u->{ya} - $u->{y0} - $u->{yb};
+				? $u->{x} + $u->{xa} - $u->{x0} - $u->{xb}
+				: $u->{y} + $u->{ya} - $u->{y0} - $u->{yb};
 			$add_data->{collapsed_coord}[1] = $add_data->{collapsed_coord}[0] + $d;
 		}
 		 elsif( $rotate->[0] < 2 )
@@ -3732,7 +3732,7 @@ sub undo_redo
 	$data = [ $data ] if ref $data ne 'ARRAY';
 
 	my @all_sql = ();
-	foreach my $d( @$data )
+	foreach my $d( reverse @$data )
 	{
 		my $restore = $undo ? $d->{back} : $d->{forward};
 		ref $restore eq 'HASH' or _data_error($restore);
@@ -4096,8 +4096,8 @@ sub save
 {
 	# $params = {
 	#    no_commit    => do not commit sql
-	#    no_history   => do not create history records
-	#    heap_history => save history in $Fibers::History
+	#    no_history   => do not create history records/$Fibers::History
+	#    heap_history => add history to $Fibers::History
 	# }
 	my($u, $action, $params) = @_;
 	$params ||= {};
@@ -4278,10 +4278,10 @@ sub create
 		}
 		my $sql = 'INSERT INTO fibers_units SET '.join(', ', @sql);
 
-	    Db->do($sql, @sql_params);
-	    Db->ok or last;
-	    my $id = Db::result->insertid;
-	    $u = $pkg->get_by_id($id, {without_transaction=>1});
+		Db->do($sql, @sql_params);
+		Db->ok or last;
+		my $id = Db::result->insertid;
+		$u = $pkg->get_by_id($id, {without_transaction=>1});
 
 		if( !$params->{no_history} )
 		{

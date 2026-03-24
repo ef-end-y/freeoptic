@@ -1,0 +1,6 @@
+data/
+web/
+.git/
+.env
+*.sql
+docker-compose.yml

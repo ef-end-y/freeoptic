@@ -12,16 +12,16 @@ fibers.make_unit = function(data, do_replace=false)
 		same_tied[t].push(d.id);
 	}
 
-	// multimode cables have same 'tied' value. Mark all cables part_id = index of sorted ids
+	// Loose tube cables have same 'tied' value. Mark all cables part_id = index of sorted ids
 	for( let v of Object.values(same_tied) ) v.sort((a,b)=>a-b);
 	let elements = [];
 	for( let d of data.sort((a,b)=>a.id-b.id) )
 	{
-	d.part_id = same_tied[d.tied] && same_tied[d.tied].length > 1 ? same_tied[d.tied].indexOf(d.id) + 1 : 0;
-	elements = elements.concat(fibers._make_unit(d, do_replace));
+		d.part_id = same_tied[d.tied] && same_tied[d.tied].length > 1 ? same_tied[d.tied].indexOf(d.id) + 1 : 0;
+		elements = elements.concat(fibers._make_unit(d, do_replace));
 	}
 	return elements;
-	}
+};
 
 fibers._make_unit = function(data, do_replace)
 {
@@ -62,7 +62,7 @@ fibers._make_unit = function(data, do_replace)
 	let join_params = function(params)
 	{
 		return Object.assign({}, def_params, params);
-	}
+	};
 
 	if( data.type == 'none' )
 	{
@@ -78,10 +78,10 @@ fibers._make_unit = function(data, do_replace)
 		}
 
 		// A and B side positions
-		let xa = x + +data.xa;
-		let ya = y + +data.ya;
-		let xb = +data.x0 + +data.xb;
-		let yb = +data.y0 + +data.yb;
+		let xa = x + (+data.xa);
+		let ya = y + (+data.ya);
+		let xb = +data.x0 + (+data.xb);
+		let yb = +data.y0 + (+data.yb);
 
 		let inner_units_values = simplified_scheme ? [] : Object.values(inner_units);
 		if( simplified_scheme ) classes += ' simplified';
@@ -298,7 +298,7 @@ fibers._make_unit = function(data, do_replace)
 		        if( +order_a < +order_b ) return -1;
 		        if( +order_a > +order_b ) return 1;
 		        return 0;
-		    }
+		    };
 		}
 
 		sides[0].connect_with = first_id;
@@ -494,7 +494,6 @@ fibers._make_unit = function(data, do_replace)
 		if( +data.width > 0 && +data.height> 0 ) {
 			frame_data.set_width = +data.width;
 			frame_data.set_height = +data.height;
-			//x += 50;
 		}
 
 		elements.push(join_params({
@@ -697,6 +696,7 @@ fibers.make_grouped_links = function(links_params)
 		let src = data.src + ':' + data.src_side;
 		let dst = data.dst + ':' + data.dst_side;
 		if( already[src + '+' + dst] || already[dst + '+' + src] ) continue;
+		if( src === dst ) continue;
 		already[src + '+' + dst] = 1;
 		elements.push({
 			data : {
