@@ -9,7 +9,7 @@ function click_debug(event, target)
 cy.on('position', 'node[type="fragment"]', function(event)
 {
 	let target = event.target;
-	fibers.cy.elements('[fragment_link=' + target.data('i') + ']').position(target.position());
+	cy.elements('[fragment_link=' + target.data('i') + ']').position(target.position());
 });
 
 cy.on('add', '[type="link"],[cls="single_fiber"]', function(event)
@@ -17,7 +17,7 @@ cy.on('add', '[type="link"],[cls="single_fiber"]', function(event)
 	cy.startBatch();
 	for( let n of event.target.connectedNodes() )
 	{
-		if( n.data('cls') == 'fiber_tip' ) {
+		if( n.data('cls') === 'fiber_tip' ) {
 			if( n.hasClass('hidden') ) {
 				event.target.addClass('hidden');
 			}
@@ -32,8 +32,8 @@ change_fiber_tip_event = function(target)
 	let connectedEdges = target.connectedEdges();
 	let i = 0;
 	let color, hide;
-	let add_class = undefined;
-	let remove_class = undefined;
+	let add_class;
+	let remove_class;
 	for( let e of connectedEdges )
 	{
 		if( !i++ )
@@ -99,7 +99,7 @@ cy.on('click cxttap', function(event)
 
 	if( !fibers.cy.multiClickDebounceTime )
 	{
-		if( event.type == 'cxttap' ) return fibers.cy.trigger('dbl-click', event);
+		if( event.type === 'cxttap' ) return fibers.cy.trigger('dbl-click', event);
 
 
 		if( fibers.dblclick.timeout && fibers.dblclick.tapped_before )
@@ -108,8 +108,8 @@ cy.on('click cxttap', function(event)
 		}
 		if( fibers.dblclick.tapped_before === target )
 		{
-			cy.nodes('[action]').data('action', 'primary');
-			fibers.cy.trigger('dbl-click', event);
+			cy.nodes('[action][action!="primary"]').data('action', 'primary');
+			cy.trigger('dbl-click', event);
 			fibers.dblclick.tapped_before = null;
 			return;
 		}
@@ -123,16 +123,18 @@ cy.on('click cxttap', function(event)
 	let position_grid = fibers.position_grid;
 	if( position_grid )
 	{
-		fibers.cy.nodes('[cls="position_grid"]').remove();
+		cy.nodes('[cls="position_grid"]').remove();
 		fibers.position_grid = undefined;
 	}
 
 	if( target === fibers.cy )
 	{
-		cy.nodes('[action]').data('action', 'primary');
+		cy.startBatch();
+		cy.nodes('[action][action!="primary"]').data('action', 'primary');
 		cy.nodes('[cls="size_control"]').addClass('display_none');
 		fibers.mark_as_minor_group(true);
 		if( fibers.eh_enabled ) fibers.toggle_link_editing();
+		cy.endBatch();
 		return;
 	}
 
@@ -143,7 +145,7 @@ cy.on('click cxttap', function(event)
 
 	if( target.data('secondary_action') ) target.data('action', target.data('secondary_action'));
 
-	if( cls == 'frame_inner' && fibers.position_grid_en )
+	if( cls === 'frame_inner' && fibers.position_grid_en )
 	{
 		let nodes = target.parent().children().sort(function( a, b ){
 		    let p = a.position().y - b.position().y;
@@ -175,9 +177,9 @@ cy.on('click cxttap', function(event)
 			}
 		}
 		fibers.position_grid = target;
-		fibers.cy.add(elements);
+		cy.add(elements);
 	}
-	if( cls == 'position_grid' )
+	if( cls === 'position_grid' )
 	{
 		let pos = position_grid.position();
 		api_base.ajax({
@@ -189,7 +191,7 @@ cy.on('click cxttap', function(event)
 			ok_func  : 'fibers.replace_obj'
 		});
 	}
-	if( cls == 'collapsed_cable' && target.data('linked_scheme') )
+	if( cls === 'collapsed_cable' && target.data('linked_scheme') )
 	{
 		fibers.dblclick.click_task = setTimeout(function(){
 			api_base.ajax({
@@ -226,7 +228,7 @@ cy.on('dbl-click', function(event0, event)
 	let type = cls + '.' + target.data('type');
 	let father = fibers.cy.getElementById(target.data('father'));
 
-	if( type == 'frame_picture.cable' || cls == 'cable_end_joint_container' || cls == 'cable_end_joint' )
+	if( type === 'frame_picture.cable' || cls === 'cable_end_joint_container' || cls === 'cable_end_joint' )
 	{
 		if( fibers.read_only ) return;
 		let side = target.data('side');
@@ -241,7 +243,7 @@ cy.on('dbl-click', function(event0, event)
 		});
 	}
 
-	if( type == 'frame.container' )
+	if( type === 'frame.container' )
 	{
 		let all_data = target.data('all_data');
 		return fibers.menu('container_menu', {
@@ -253,7 +255,7 @@ cy.on('dbl-click', function(event0, event)
 		});
 	}
 
-	if( cls == 'frame' || cls == 'frame_picture' )
+	if( cls === 'frame' || cls === 'frame_picture' )
 	{
 		if( fibers.read_only ) return;
 		let frame = cls == 'frame_picture' ? fibers.cy.getElementById(target.data('father')) : target;
@@ -263,7 +265,7 @@ cy.on('dbl-click', function(event0, event)
 		let x, y;
 		let xb = min_x.ele.boundingBox();
 		let yb = min_y.ele.boundingBox();
-		if( cls == 'frame' )
+		if( cls === 'frame' )
 		{
 			x = event.position.x - (xb.x1 + xb.x2)/2 + min_x.ele.data('inner_position').x;
 			y = event.position.y - (yb.y1 + yb.y2)/2 + min_y.ele.data('inner_position').y;
@@ -284,7 +286,7 @@ cy.on('dbl-click', function(event0, event)
 		}, frame);
 	}
 
-	if( cls == 'collapsed_cable' )
+	if( cls === 'collapsed_cable' )
 	{
 		let xy = [];
 		for( let i of [0, 1] )
@@ -305,7 +307,7 @@ cy.on('dbl-click', function(event0, event)
 		});
 	}
 
-	if( cls == 'cable_joint_container' )
+	if( cls === 'cable_joint_container' )
 	{
 		if( fibers.read_only ) return;
 		return fibers.menu('cable_joint_menu', {
@@ -315,7 +317,7 @@ cy.on('dbl-click', function(event0, event)
 		});
 	}
 
-	if( cls == 'link_joint' )
+	if( cls === 'link_joint' )
 	{
 		return fibers.menu('link_joint_menu', {
 			id        : target.data('link_id'),
@@ -323,7 +325,7 @@ cy.on('dbl-click', function(event0, event)
 		});
 	}
 
-	if( cls == 'frame_inner' )
+	if( cls === 'frame_inner' )
 	{
 		//if( fibers.show_all_linked_schemes ) return;
 		let data = {
@@ -341,7 +343,7 @@ cy.on('dbl-click', function(event0, event)
 		return fibers.menu('frame_inner_menu', data);
 	}
 
-	if( type == 'link.link' )
+	if( type === 'link.link' )
 	{
 		if( fibers.read_only ) return;
 		return fibers.menu('link_menu', {
@@ -352,7 +354,7 @@ cy.on('dbl-click', function(event0, event)
 		});
 	}
 
-	if( cls == 'fiber_tip' || cls == 'single_fiber' )
+	if( cls === 'fiber_tip' || cls === 'single_fiber' )
 	{
 		return fibers.cable_connector_menu({
 			id       : father.data('i'),
@@ -371,7 +373,7 @@ cy.on('grabon select', function(event)
 	let target = event.target;
 	let cls = target.data('cls');
 	fibers.update_start_position(target);
-	if( cls == 'frame' )
+	if( cls === 'frame' )
 	{
 		let frame_picture = fibers.cy.getElementById(target.data('tied_with'));
 		fibers.update_start_position(frame_picture);
@@ -386,16 +388,16 @@ cy.on('grabon select', function(event)
 
 cy.on('unselect', function(event)
 {
-	fibers.cy.elements('[cls="frame_picture"]').removeClass('hide_picture_when_frame_is_selected');
+	cy.elements('[cls="frame_picture"].hide_picture_when_frame_is_selected').removeClass('hide_picture_when_frame_is_selected');
 });
 
 cy.on('drag', function(event)
 {
 	let target = event.target;
 	let action = target.data('action');
-	if( action == 'primary' ) action = target.data('primary_action');
+	if( action === 'primary' ) action = target.data('primary_action');
 
-	if( action == 'slide' )
+	if( action === 'slide' )
 	{
 		let slide_along_node = cy.getElementById(target.data('tied_with'));
 		let pos = target.data('start_pos');
@@ -405,7 +407,7 @@ cy.on('drag', function(event)
 		);
 		return;
 	}
-	if( action == 'move_with' )
+	if( action === 'move_with' )
 	{
 		let tied_node = fibers.cy.getElementById(target.data('tied_with'));
 		if( tied_node )
@@ -417,18 +419,18 @@ cy.on('drag', function(event)
 				tied_node.position({x: target.position().x + pos.x - pos2.x, y: target.position().y + pos.y - pos2.y});
 			}
 		}
-		if( target.data('type') == 'container' )
+		if( target.data('type') === 'container' )
 		{
 			cy.startBatch();
-			cy.nodes('[cls="fiber_tip"]').addClass('temporary_hidden');
-			cy.edges('[cls="single_fiber"]').addClass('temporary_hidden');
-			cy.edges('[cls="link"]').addClass('temporary_hidden');
-			cy.nodes('[cls="cable_side_container"]').addClass('temporary_hidden');
+			cy.nodes('[cls="fiber_tip"]').not('.temporary_hidden').addClass('temporary_hidden');
+			cy.edges('[cls="single_fiber"]').not('.temporary_hidden').addClass('temporary_hidden');
+			cy.edges('[cls="link"]').not('.temporary_hidden').addClass('temporary_hidden');
+			cy.nodes('[cls="cable_side_container"]').not('.temporary_hidden').addClass('temporary_hidden');
 			cy.endBatch();
 			fibers.single_fibers_hidden = true;
 		}
 	}
-	if( action == 'move_all' )
+	if( action === 'move_all' )
 	{
 		if( !fibers.single_fibers_hidden )
 		{
@@ -452,7 +454,7 @@ cy.on('drag', function(event)
 			}
 		fibers.single_fibers_hidden = true;
 	}
-	if( action == 'move_side' )
+	if( action === 'move_side' )
 	{
 		if( !fibers.single_fibers_hidden )
 		{
@@ -469,8 +471,7 @@ cy.on('dragfree', function(event)
 	let cy = fibers.cy;
 	if( fibers.single_fibers_hidden )
 	{
-		cy.nodes().removeClass('temporary_hidden');
-		cy.edges().removeClass('temporary_hidden');
+		cy.elements('.temporary_hidden').removeClass('temporary_hidden');
 		fibers.single_fibers_hidden = false;
 	}
 
@@ -527,9 +528,9 @@ cy.on('dragfree', function(event)
 		let moving_obj = undefined;
 
 		let action = target.data('action');
-		if( action == 'primary' || multimove ) action = target.data('primary_action');
+		if( action === 'primary' || multimove ) action = target.data('primary_action');
 
-		if( action == 'slide' )
+		if( action === 'slide' )
 		{
 			let slide_along_node = cy.getElementById(target.data('tied_with'));
 			let delta = data['y'] || data['x'];
@@ -541,7 +542,7 @@ cy.on('dragfree', function(event)
 				ok_func : 'fibers.replace_obj'
 			};
 
-			if( cls == 'fiber_tip' )
+			if( cls === 'fiber_tip' )
 			{
 				data.fiber_id = target.data('i');
 				let pos = target.data('pos') + delta;
@@ -561,25 +562,25 @@ cy.on('dragfree', function(event)
 				data.act = 'cable_end_joint_slide';
 			}
 		}
-		 else if( action == 'move_all' )
+		 else if( action === 'move_all' )
 		{
 			let tied_node = fibers.cy.getElementById(target.data('tied_with'));
 			data['act'] = 'cable_move';
 			data['id'] = tied_node.data('i');
 		}
-		 else if( action == 'move_side' )
+		 else if( action === 'move_side' )
 		{
 			let tied_node = fibers.cy.getElementById(target.data('tied_with'));
 			data['act'] = 'cable_move';
 			data['id'] = tied_node.data('i');
 			data['side'] = target.data('i') == 2 ? 0 : 1;
 		}
-		 else if( cls == 'size_control' )
+		 else if( cls === 'size_control' )
 		{
 			data['act'] = 'frame_size';
 			data['id'] = target.parent().data('i');
 		}
-		 else if( cls == 'cable_end_joint_container' )
+		 else if( cls === 'cable_end_joint_container' )
 		{
 			let tied_node = cy.getElementById(target.data('tied_with'));
 			for( let fragment of cy.nodes('[type="fragment"]') )
@@ -602,27 +603,27 @@ cy.on('dragfree', function(event)
 			data['joint_num'] = tied_node.data('side');
 			moving_obj = target;
 		}
-		 else if( cls == 'cable_joint_container' )
+		 else if( cls === 'cable_joint_container' )
 		{
 			data['act'] = 'cable_joint_position';
 			data['id'] = cy.getElementById(target.data('father')).data('i');
 			data['joint_num'] = target.data('joint_num');
 			moving_obj = target;
 		}
-		 else if( cls == 'link_joint' )
+		 else if( cls === 'link_joint' )
 		{
 			data['act'] = 'link_joint_position';
 			data['id'] = target.data('link_id');
 			data['joint_num'] = target.data('joint_num');
 			data['ok_func'] = 'fibers.link_replace_callback';
 		}
-		 else if( cls == 'frame' )
+		 else if( cls === 'frame' )
 		{
 			data['act'] = 'frame_position';
 			data['id'] = target.data('i');
 			moving_obj = target;
 		}
-		 else if( cls == 'frame_picture' )
+		 else if( cls === 'frame_picture' )
 		{
 			let father = cy.getElementById(target.data('father'));
 			fibers.update_center_info(father);
@@ -630,7 +631,7 @@ cy.on('dragfree', function(event)
 			data['id'] = father.data('i');
 			moving_obj = father;
 		}
-		 else if( cls == 'frame_inner' )
+		 else if( cls === 'frame_inner' )
 		{
 			data['act'] = 'frame_inner_position';
 			data['id'] = target.parent().data('i');
@@ -659,7 +660,7 @@ cy.on('dragfree', function(event)
 			let bb_u2;
 			let m_cls = moving_obj.data('cls');
 			let m_place_id = moving_obj.data('place_id');
-			if( (m_cls == 'frame' || m_cls == 'frame_picture') && moving_obj.data('tied_with') )
+			if( (m_cls === 'frame' || m_cls === 'frame_picture') && moving_obj.data('tied_with') )
 			{
 				bb_u2 = cy.getElementById(moving_obj.data('tied_with')).boundingBox();
 			}
@@ -740,7 +741,7 @@ cy.on('zoom pan', function(event)
 	const change_scheme_detalization_zoom = fibers.settings.change_scheme_detalization_zoom * (0.35 + units_count * 0.65/1000);
 	const detalization = zoom > change_scheme_detalization_zoom;
 	
-	if( (event.type == 'zoom') && (detalization && simple) || (!detalization && !simple) )
+	if( (event.type === 'zoom') && (detalization && simple) || (!detalization && !simple) )
 	{
 		fibers.simplified_scheme = simple = !simple;
 		$('#btn-toggle-simplified').trigger('show-state');
