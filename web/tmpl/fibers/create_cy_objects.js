@@ -1,3 +1,6 @@
+/* global fibers, cy, api_base, nody */
+/* jshint strict: false */
+
 fibers.make_unit = function(data, do_replace=false)
 {
 	if( !Array.isArray(data) ) data = [ data ];
@@ -64,11 +67,11 @@ fibers._make_unit = function(data, do_replace)
 		return Object.assign({}, def_params, params);
 	};
 
-	if( data.type == 'none' )
+	if( data.type === 'none' )
 	{
 		// do not show
 	}
-	 else if( cls == 'cable' )
+	 else if( cls === 'cable' )
 	{
 		if( do_replace )
 		{
@@ -173,9 +176,9 @@ fibers._make_unit = function(data, do_replace)
 			joints_x.push(Math.abs(j.x-last_x));
 			last_x = j.x;
 		}
-		let first_id = undefined;
-		let last_id = undefined;
-		let prev_id = undefined;
+		let first_id;
+		let last_id;
+		let prev_id;
 		let i = 0;
 		let pre_last_i = joints.length - 1;
 		let min_distance_for_labels = Math.min(Math.max(...joints_x), 200);
@@ -314,7 +317,7 @@ fibers._make_unit = function(data, do_replace)
 
 			let rotate = +add_data.rotate[p.side];
 			let prev_pos= -100;
-			let prev_fiber_tip = undefined;
+			let prev_fiber_tip;
 			let parent_id = container_id + ':' + p.side;
 
 			if( !fragment_link )
@@ -412,13 +415,13 @@ fibers._make_unit = function(data, do_replace)
 		}
 
 	}
-	 else if( data.type == 'fragment' )
+	 else if( data.type === 'fragment' )
 	{
 	}
-	 else if( data.type == 'container' )
+	 else if( data.type === 'container' )
 	{
-		if( is_infrastructure_view && data.add_data.layers == 'scheme' ) return [];
-		if( !is_infrastructure_view && data.add_data.layers == 'infrastructure' ) return [];
+		if( is_infrastructure_view && data.add_data.layers === 'scheme' ) return [];
+		if( !is_infrastructure_view && data.add_data.layers === 'infrastructure' ) return [];
 		let container_classes = '';
 		if( simplified_scheme ) container_classes += ' simplified';
 		container_id = container_id + ':0';
@@ -586,7 +589,7 @@ fibers._make_unit = function(data, do_replace)
 			el_data.label = label;
 
 			const label_len = (label || '').length;
-			if( classes != 'mute' && param.mute ) {
+			if( classes !== 'mute' && param.mute ) {
 				frame_inner_classes.push('mute');
 			}
 			if( fibers.tx_rx_mode ) {
@@ -609,7 +612,7 @@ fibers._make_unit = function(data, do_replace)
 				classes : frame_inner_classes.join(' ')
 			}));
 
-			if( param.type == 'splitter' && param.i > 0 )
+			if( param.type === 'splitter' && param.i > 0 )
 			{
 				splitter_links.push({
 					data : {
@@ -626,7 +629,7 @@ fibers._make_unit = function(data, do_replace)
 			}
 		}
 		if( do_replace ) fibers.cy.remove(fibers.cy.elements('[id^="' + container_id + ':link:"]'));
-		if( zero_splitter_exists ) elements = elements.concat(splitter_links);
+		if( zero_splitter_exists ) elements.push(...splitter_links);
 	}
 	// console.log(elements);
 	return elements;
@@ -687,14 +690,16 @@ fibers.make_link = function(data)
 	return elements;
 };
 
-fibers.make_grouped_links = function(links_params)
+fibers.make_grouped_links = function(links_params, semi_hide_parents)
 {
-	let elements = [];
-	let already = {};
+	const elements = [];
+	const already = {};
 	for( let data of links_params )
 	{
 		let src = data.src + ':' + data.src_side;
 		let dst = data.dst + ':' + data.dst_side;
+
+		if( !semi_hide_parents.includes(src) && !semi_hide_parents.includes(dst) ) continue;
 		if( already[src + '+' + dst] || already[dst + '+' + src] ) continue;
 		if( src === dst ) continue;
 		already[src + '+' + dst] = 1;

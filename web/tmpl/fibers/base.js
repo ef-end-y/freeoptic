@@ -455,11 +455,8 @@ fibers.show_all_callback = function(data)
 
 	if( ! fibers.is_infrastructure_view )
 	{
-		for( let param of data.links ) {
+		for( const param of data.links ) {
 			elements = elements.concat(fibers.make_link(param));
-		}
-		if( !fibers.simplified_scheme ) {
-			elements = elements.concat(fibers.make_grouped_links(data.links));
 		}
 	}
 
@@ -475,6 +472,12 @@ fibers.show_all_callback = function(data)
 	cy.endBatch();
 
 	fibers.mark_as_minor_group(true);
+
+	if( ! fibers.is_infrastructure_view && !fibers.simplified_scheme ) {
+		const semi_hide_parents = cy.nodes('[cls="grp"] > node').map(el => el.data('id'));
+		elements = fibers.make_grouped_links(data.links, semi_hide_parents);
+		cy.add(elements);
+	}
 
 	if( fibers.is_preview )
 	{
