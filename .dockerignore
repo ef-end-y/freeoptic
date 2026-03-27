@@ -1,5 +1,4 @@
 data/
-web/
 .git/
 .env
 *.sql
