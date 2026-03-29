@@ -306,8 +306,9 @@ sub search
 	my($scheme_id) = @_;
 	my $search = v::trim(ses::input('search'));
 	$search =~ s|\\|\\\\|g;
-	$search =~ s|(['"%])|\\$1|g;
-	$search =~ s|[\r\n\0]||g;
+	$search =~ s|(['"])|\\$1|g;
+	$search =~ s|[\r\n\0\x1a]||g;
+	$search =~ s|[%_]|\\$&|g;
 	my $db = Db->sql(
 		"SELECT id, name, type FROM fibers_units WHERE removed=0 AND scheme_id=? ".
 		"AND (name LIKE '$search%' OR inner_units LIKE '%\"remote_id\":\"$search\"%') ".
@@ -1029,7 +1030,7 @@ sub _validate_signal_levels
 	$levels[1] > $levels[0] or return '';
 	$levels[2] > $levels[1] or return '';
 	$levels[3] > $levels[2] or return '';
-	$levels[3] <= $MAX_SIGNAL_LEVEL or last;
+	$levels[3] <= $MAX_SIGNAL_LEVEL or return '';
 	return \@levels;
 }
 
@@ -1122,7 +1123,7 @@ sub import_all
 	$y -= $y_min;
 
 	my $links = [];
-	my $i = 0;
+	$i = 0;
 	foreach my $p( @{$data->{links}} )
 	{
 		if( ++$i > $import_scheme__max_links )
@@ -1539,7 +1540,7 @@ sub _in_out_container
 			$old_place_id = int $target->[$joint_num];
 			$target->[$joint_num] = $place_id;
 			$x = $joint_num ? $u->{x0} + $u->{xb} : $u->{x} + $u->{xa};
-			$y = $joint_num ? $u->{y0} + $u->{yb} : $u->{y} + $u->{yb};
+			$y = $joint_num ? $u->{y0} + $u->{yb} : $u->{y} + $u->{ya};
 		}
 		elsif( $joint_num > 1 && $joint_num < scalar(@{$u->{joints}}) + 2 )
 		{
@@ -2313,7 +2314,7 @@ sub cable_data
 	}
 	my $map_types = [];
 	my $sql_end = $cfg::fibers_collective_data ? '' : 'WHERE scheme_id='.int($scheme_id);
-	my $db = Db->sql("SELECT * FROM fibers_cable_types $sql_end");
+	$db = Db->sql("SELECT * FROM fibers_cable_types $sql_end");
 	while( my %p = $db->line )
 	{
 		push @$map_types, \%p;
@@ -3930,7 +3931,7 @@ sub scheme_data_save
 }
 
 
-sub scheme_remove()
+sub scheme_remove
 {
 	my($scheme_id) = @_;
 	$User->{full_access} or ApiError(L('Access denied'));
@@ -3997,7 +3998,7 @@ sub check_history
 	{
 		$units{$p{id}} = 1;
 	}
-	my $db = Db->sql('SELECT * FROM fibers_history WHERE scheme_id=?', $scheme_id);
+	$db = Db->sql('SELECT * FROM fibers_history WHERE scheme_id=?', $scheme_id);
 	while( my %p = $db->line )
 	{
 		utf8::decode($p{data});
@@ -4753,7 +4754,6 @@ sub new
 		trunk => int $d{trunk},
 		place_id => int $d{place_id},
 		tied => int $d{tied},
-		add_data => $d{data},
 		img => $d{img}.'',
 		grp => int $d{grp},
 		inner_units => ref $d{inner_units} ? $d{inner_units} : $cls->decode($d{inner_units}),
