@@ -1048,7 +1048,7 @@ sub import_all
 			'ajFibers__clipboard', $ses::auth->{role}, $ses::auth->{uid}
 		);
 		$data = %p ? Debug->do_eval($p{data}) : '';
-		$data or ApiError(L('Сlipboard is empty'));
+		$data or ApiError(L('Clipboard is empty'));
 
 		if( $act eq 'into_collection' )
 		{
@@ -2846,7 +2846,7 @@ sub cable_link_with_scheme_save
 	}
 
 	my($linked_scheme_gid, $linked_cable_id) = split /:/, $new_linked_scheme;
-	$linked_scheme_gid eq $scheme_gid && ApiError(L('The cable to be connected to must be on a other scheme'));
+	$linked_scheme_gid eq $scheme_gid && ApiError(L('The cable to be connected to must be on another scheme'));
 
 	my %p = Db->line(
 		'SELECT s.id, s.uid, s.shared FROM fibers_units u JOIN fibers_schemes s ON u.scheme_id=s.id '.
@@ -3140,7 +3140,7 @@ sub _link_create
 			my $target_cls = $units[1-$i]->{cls};
 			my $target_type = $units[1-$i]->{type};
 			#$u->{type} eq 'switch' && $target_type !~ /^(switch|panel)$/ && ApiError(L('Можно соединить только с рамой или другим коммутатором'));
-			$u->{type} eq 'switch' && $u->{id} == $units[1-$i]->{id} && ApiError(L('Петля'));
+			$u->{type} eq 'switch' && $u->{id} == $units[1-$i]->{id} && ApiError(L('Loop'));
 			$inner_type eq 'solder' && $target_cls ne 'cable' && ApiError(L('soldering_connects_to_a_fiber_only'));
 			my $db = Db->sql(
 				'SELECT u.cls, u.type FROM fibers_links l JOIN fibers_units u ON l.dst=u.id WHERE l.removed=0 AND src=? AND src_inner=?'.
@@ -3154,7 +3154,7 @@ sub _link_create
 			{
 				if( $inner_type eq 'solder' )
 				{
-					++$fibers_connection_count > 1 && ApiError(L('Только 2 волокна в пайке'));
+					++$fibers_connection_count > 1 && ApiError(L('Only 2 fibers in a solder'));
 				}
 				 else
 				{

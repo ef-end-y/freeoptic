@@ -158,7 +158,7 @@ $ajFibers = {
     'available_to_everyone0' => 'The scheme is available to everyone',
     'want_a_personal_scheme' => 'if you want a personal scheme, export this one, create a new one and import from a file',
     'this_is_fragment' => 'This scheme is part of another scheme. Everyone who has access to the parent scheme has access to this one',
-    'The cable to be connected to must be on a other scheme' => 'The cable to be connected to must be on a other scheme',
+    'The cable to be connected to must be on another scheme' => 'The cable to be connected to must be on another scheme',
     'Cannot remove a fiber from a linked cable' => 'You cannot remove a fiber from a cable that is linked to another scheme. Remove the link first',
     'Cannot add a fiber to a linked cable' => 'You cannot add a fiber to a cable that is linked to another scheme. Remove the link first',
     'Cannot remove a linked cable' => 'You cannot remove cable that is linked to another scheme. Remove the link first',
@@ -171,6 +171,7 @@ $ajFibers = {
     'Break distance is not specified' => 'Break distance is not specified',
     'Cable ends must be in containers' => 'Cable ends must be in containers',
     'The container cannot be removed from the infrastructure layer because it is set on the map' => 'The container cannot be removed from the infrastructure layer because it is set on the map',
+    'Only 2 fibers in a solder' => 'Only 2 fibers in a solder',
 
     'синий' => 'blue',
     'оранжевый' => 'orange',

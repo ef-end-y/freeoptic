@@ -20,8 +20,8 @@ $admin = {
     admin_create_question => 'Создать нового пользователя?',
     admin_del_question    => 'Удалить пользователя [filtr|bold]?',
 
-    admin_is_created      => 'Создана пользователь',
-    admin_is_deleted      => 'Удалена пользователь',
+    admin_is_created      => 'Создан пользователь',
+    admin_is_deleted      => 'Удален пользователь',
 
     fields => {
         login       => 'Логин',

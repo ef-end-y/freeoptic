@@ -14,7 +14,7 @@ $admin = {
         { priv => 3,   title => 'Admin' },
     ],
 
-    no_admin_exists       => 'There are no user in the database',
+    no_admin_exists       => 'There is no user in the database',
     admin_not_exists      => 'There is no user with id = [bold]',
 
     admin_create_question => 'Create a new user?',
