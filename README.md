@@ -1,8 +1,13 @@
 # FreeOptic - IDE for creating fiber-optic schemes
 
-[![Introduction to FreeOptic](https://youtube.com)](https://www.youtube.com/watch?v=TNle7VP6jaw)
+## Introduction video:
 
-Online demo https://all-optic.com/
+<a href="https://www.youtube.com/watch?v=TNle7VP6jaw">
+  <img src="video.png" alt="Introduction to FreeOptic" width="50%">
+</a>
+
+
+### Online demo https://all-optic.com/
 
 ## Installation
 
