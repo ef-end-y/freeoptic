@@ -1,6 +1,6 @@
 # FreeOptic - IDE for creating fiber-optic schemes
 
-[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct.svg)](https://stand-with-ukraine.pp.ua)
+[![Introduction to FreeOptic](https://youtube.com)](https://www.youtube.com/watch?v=TNle7VP6jaw)
 
 Online demo https://all-optic.com/
 
@@ -96,3 +96,5 @@ In this mode you can draw connections between fiber edges of cable and connector
   - A scheme may show some data (for example rx or tx) received from another database. For example, this may be a database in which you record ONU signal levels online.
 
 <img src="htdocs/doc/scheme_data.png" style="width: 400px; margin-left: 5%;">
+
+[![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct.svg)](https://stand-with-ukraine.pp.ua)
